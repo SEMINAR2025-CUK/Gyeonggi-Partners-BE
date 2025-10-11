@@ -61,3 +61,6 @@ logs/
 
 ### Docker 데이터 ###
 postgres-data/
+redis-data/
+docker-compose.override.yml
+.env
