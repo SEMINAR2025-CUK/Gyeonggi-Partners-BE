@@ -68,6 +68,15 @@
 
 ## 로컬 환경 세팅
 
+
+## Swagger
+
+애플리케이션 실행 후 아래 URL로 접속:
+- Swagger UI: http://localhost:8080/swagger-ui.html
+- API Docs JSON: http://localhost:8080/v3/api-docs
+
+
+
 [백엔드 로컬 환경 세팅 가이드](SETUP.md)를 참고하세요.
 
 
