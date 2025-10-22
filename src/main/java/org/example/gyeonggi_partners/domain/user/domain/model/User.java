@@ -13,21 +13,30 @@ import java.util.regex.Pattern;
 @Getter
 public class User {
 
-    private static final Pattern EMAIL_PATTERN =
-        Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    //로그인 아이디 규칙
+    private static final int MAX_LOGIN_ID_LENGTH = 20;
 
-    private static final Pattern PHONE_PATTERN =
-            Pattern.compile("^01[016789]\\d{7,8}$");  // ← 이것도 추가해야 함!
-    // DB 컬럼 길이 제약
-    private static final int MAX_LOGIN_ID_LENGTH = 30;// 암호화된 비밀번호
-    private static final int MAX_NAME_LENGTH = 50;
-    private static final int MAX_NICKNAME_LENGTH = 50;
-    private static final int MAX_EMAIL_LENGTH = 50;
-    private static final int MAX_PHONE_NUMBER_LENGTH = 20;
-    
-    // 비즈니스 규칙
+    //비밀번호 규칙
     private static final int MIN_PASSWORD_LENGTH = 8;  // 평문 기준
-    
+    private static final int MAX_PASSWORD_LENGTH = 50;
+
+    //이름 규칙
+    private static final int MAX_NAME_LENGTH = 20;
+
+    //닉네임 규칙
+    private static final int MAX_NICKNAME_LENGTH = 15;
+
+    //이메일 규칙
+    private static final Pattern EMAIL_PATTERN =
+            Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,30}$");
+    private static final int MAX_EMAIL_LENGTH = 50;
+
+    //전화번호 규칙
+    private static final Pattern PHONE_PATTERN =
+            Pattern.compile("^01[016789]-\\d{3,4}-\\d{4}$");
+    private static final int MAX_PHONE_NUMBER_LENGTH = 20;
+
+
     private Long id;
     private String loginId;        // 로그인 ID
     private String loginPw;        // 암호화된 비밀번호
@@ -123,6 +132,10 @@ public class User {
             throw new IllegalArgumentException(
                 String.format("비밀번호는 %d자 이상이어야 합니다.", MIN_PASSWORD_LENGTH));
         }
+        if (password.length() > MAX_PASSWORD_LENGTH) {
+            throw new IllegalArgumentException(
+                    String.format("비밀번호는 %d자를 초과할 수 없습니다.", MAX_PASSWORD_LENGTH));
+        }
         // 암호화 전 평문은 길이 제한 없음 (암호화 후 255자 이내로 저장됨)
     }
 
@@ -167,8 +180,7 @@ public class User {
             throw new IllegalArgumentException(
                 String.format("전화번호는 %d자를 초과할 수 없습니다.", MAX_PHONE_NUMBER_LENGTH));
         }
-        String numbersOnly = phoneNumber.replaceAll("[^0-9]", "");
-        if (!PHONE_PATTERN.matcher(numbersOnly).matches()) {
+        if (!PHONE_PATTERN.matcher(phoneNumber).matches()) {
             throw new IllegalArgumentException("올바른 휴대폰 번호 형식이 아닙니다.");
         }
     }
