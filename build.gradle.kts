@@ -46,7 +46,7 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql")
 
     // Swagger (API 문서화)
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
 
     // Redis
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
