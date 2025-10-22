@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.example.gyeonggi_partners.common.dto.ApiResponse;
+import org.example.gyeonggi_partners.domain.user.api.dto.SignUpRequest;
+import org.example.gyeonggi_partners.domain.user.api.dto.SignUpResponse;
 import org.example.gyeonggi_partners.domain.user.api.dto.VerifyEmailRequest;
 import org.example.gyeonggi_partners.domain.user.application.UserService;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +25,16 @@ public class UserController {
 
     private final UserService userService;
 
+    /**
+     * 회원가입
+     * POST /api/users/signup
+     */
+    @Operation(summary = "회원가입", description = "새로운 사용자를 등록합니다.")
+    @PostMapping("/signup")
+    public ResponseEntity<ApiResponse<SignUpResponse>> signUp(@RequestBody SignUpRequest request) {
+        SignUpResponse response = userService.signUp(request);
+        return ResponseEntity.ok(ApiResponse.success(response, "회원가입에 성공했습니다."));
+    }
 
     /**
      * 이메일 인증번호 발송
