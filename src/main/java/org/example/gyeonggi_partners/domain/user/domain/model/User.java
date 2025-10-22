@@ -31,7 +31,7 @@ public class User {
     // 010: 010-XXXX-XXXX (4자리-4자리)
     // 011~019: 01X-XXX-XXXX (3자리-4자리)
     private static final Pattern PHONE_PATTERN =
-            Pattern.compile("^(010-\\d{4}-\\d{4}|01[16789]-\\d{3}-\\d{4})$");
+            Pattern.compile("^010-\\d{4}-\\d{4}$");
     private static final int MAX_PHONE_NUMBER_LENGTH = 20;
 
 

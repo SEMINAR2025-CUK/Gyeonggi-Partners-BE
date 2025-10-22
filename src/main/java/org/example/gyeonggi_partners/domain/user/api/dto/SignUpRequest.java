@@ -53,8 +53,8 @@ public class SignUpRequest {
     private String email;
     
     @NotBlank(message = "전화번호는 필수입니다")
-    @Pattern(regexp = "^01[016789]-\\d{3,4}-\\d{4}$", 
-             message = "올바른 휴대폰 번호 형식이 아닙니다 (예: 010-1234-5678)")
+    @Pattern(regexp = "^010-\\d{4}-\\d{4}$",
+            message = "올바른 휴대폰 번호 형식이 아닙니다 (예: 010-1234-5678)")
     @Size(max = 20)
     @Schema(description = "전화번호", example = "010-1234-5678")
     private String phoneNumber;
