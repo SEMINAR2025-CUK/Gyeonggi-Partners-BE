@@ -16,10 +16,6 @@ public class User {
     //로그인 아이디 규칙
     private static final int MAX_LOGIN_ID_LENGTH = 20;
 
-    //비밀번호 규칙
-    private static final int MIN_PASSWORD_LENGTH = 8;  // 평문 기준
-    private static final int MAX_PASSWORD_LENGTH = 50;
-
     //이름 규칙
     private static final int MAX_NAME_LENGTH = 20;
 
@@ -32,8 +28,10 @@ public class User {
     private static final int MAX_EMAIL_LENGTH = 50;
 
     //전화번호 규칙
+    // 010: 010-XXXX-XXXX (4자리-4자리)
+    // 011~019: 01X-XXX-XXXX (3자리-4자리)
     private static final Pattern PHONE_PATTERN =
-            Pattern.compile("^01[016789]-\\d{3,4}-\\d{4}$");
+            Pattern.compile("^(010-\\d{4}-\\d{4}|01[16789]-\\d{3}-\\d{4})$");
     private static final int MAX_PHONE_NUMBER_LENGTH = 20;
 
 
@@ -128,15 +126,8 @@ public class User {
         if (password == null || password.trim().isEmpty()) {
             throw new IllegalArgumentException("비밀번호는 필수입니다.");
         }
-        if (password.length() < MIN_PASSWORD_LENGTH) {
-            throw new IllegalArgumentException(
-                String.format("비밀번호는 %d자 이상이어야 합니다.", MIN_PASSWORD_LENGTH));
-        }
-        if (password.length() > MAX_PASSWORD_LENGTH) {
-            throw new IllegalArgumentException(
-                    String.format("비밀번호는 %d자를 초과할 수 없습니다.", MAX_PASSWORD_LENGTH));
-        }
-        // 암호화 전 평문은 길이 제한 없음 (암호화 후 255자 이내로 저장됨)
+        // 평문 비밀번호 검증은 UserService에서 수행
+        // 여기서는 암호화된 비밀번호가 들어오므로 길이 검증 불필요
     }
 
     private static void validateName(String name) {

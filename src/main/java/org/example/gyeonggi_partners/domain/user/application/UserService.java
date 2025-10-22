@@ -53,10 +53,13 @@ public class UserService {
         validateDuplicateEmail(req.getEmail());
         validateDuplicatePhoneNumber(req.getPhoneNumber());
 
-        // 2. 비밀번호 암호화
+        // 2. 평문 비밀번호 검증 (암호화 전)
+        validatePlainPassword(req.getPassword());
+
+        // 3. 비밀번호 암호화
         String encodedPassword = passwordEncoder.encode(req.getPassword());
 
-        // 3. User 도메인 생성 (도메인 validation 수행)
+        // 4. User 도메인 생성 (도메인 validation 수행)
         User user = User.create(
                 req.getLoginId(),
                 encodedPassword,
@@ -66,10 +69,10 @@ public class UserService {
                 req.getPhoneNumber()
         );
 
-        // 4. 저장
+        // 5. 저장
         User savedUser = userRepository.save(user);
 
-        // 5. 응답 DTO 생성
+        // 6. 응답 DTO 생성
         return new SignUpResponse(
                 savedUser.getId(),
                 savedUser.getNickname(),
@@ -102,6 +105,21 @@ public class UserService {
     private void validateDuplicatePhoneNumber(String phoneNumber) {
         if (userRepository.existsByPhoneNumber(phoneNumber)) {
             throw new BusinessException(UserErrorCode.DUPLICATE_PHONE_NUMBER);
+        }
+    }
+
+    /**
+     * 평문 비밀번호 검증 (암호화 전)
+     */
+    private void validatePlainPassword(String password) {
+        if (password == null || password.trim().isEmpty()) {
+            throw new IllegalArgumentException("비밀번호는 필수입니다.");
+        }
+        if (password.length() < 8) {
+            throw new IllegalArgumentException("비밀번호는 8자 이상이어야 합니다.");
+        }
+        if (password.length() > 50) {
+            throw new IllegalArgumentException("비밀번호는 50자를 초과할 수 없습니다.");
         }
     }
 }
