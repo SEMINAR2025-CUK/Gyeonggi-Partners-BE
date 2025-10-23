@@ -1,5 +1,8 @@
 package org.example.gyeonggi_partners.config;
 
+import lombok.RequiredArgsConstructor;
+import org.example.gyeonggi_partners.common.jwt.JwtAuthenticationFilter;
+import org.example.gyeonggi_partners.common.jwt.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -12,11 +15,15 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 @Profile("!prod") // 운영(prod) 프로파일이 아닐 때만 이 설정을 사용
+@RequiredArgsConstructor
 public class SecurityConfigDev {
+
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -30,6 +37,12 @@ public class SecurityConfigDev {
         http.sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
+        // 3. JWT 필터 추가
+        http.addFilterBefore(
+                new JwtAuthenticationFilter(jwtTokenProvider),
+                UsernamePasswordAuthenticationFilter.class
+        );
+
         // HTTP 요청에 대한 인가 규칙 설정
         http.authorizeHttpRequests(auth -> auth
                 // Swagger UI 및 API 문서 관련 경로 모두 허용
@@ -38,9 +51,12 @@ public class SecurityConfigDev {
                         "/v3/api-docs/**"
                 ).permitAll()
 
-
-                // 인증 관련 경로 허용
-                .requestMatchers("/api/auth/**").permitAll()
+                // 로그인은 인증 불필요
+                .requestMatchers("/api/auth/login").permitAll()
+                
+                // 로그아웃은 인증 필요
+                .requestMatchers("/api/auth/logout").authenticated()
+                
                 // Actuator 헬스 체크 경로 허용
                 .requestMatchers("/actuator/health/**").permitAll()
 
