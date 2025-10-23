@@ -5,6 +5,8 @@ import org.example.gyeonggi_partners.domain.user.domain.model.User;
 import org.example.gyeonggi_partners.domain.user.domain.repository.UserRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 /**
  * UserRepository 구현체
  * 도메인 인터페이스를 JPA로 구현
@@ -36,4 +38,11 @@ public class UserRepositoryImpl implements UserRepository {
     public boolean existsByPhoneNumber(String phoneNumber) {
         return userJpaRepository.existsByPhoneNumber(phoneNumber);
     }
+
+    @Override
+    public Optional<User> findByLoginId(String loginId) {
+        return userJpaRepository.findByLoginId(loginId)
+                .map(UserEntity::toDomain);
+    }
+
 }

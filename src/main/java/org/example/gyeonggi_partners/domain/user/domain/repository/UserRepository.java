@@ -2,6 +2,8 @@ package org.example.gyeonggi_partners.domain.user.domain.repository;
 
 import org.example.gyeonggi_partners.domain.user.domain.model.User;
 
+import java.util.Optional;
+
 /**
  * User 도메인 Repository 인터페이스
  * 도메인 계층에서 정의하고, 인프라 계층에서 구현
@@ -35,4 +37,13 @@ public interface UserRepository {
      * @return 존재 여부
      */
     boolean existsByPhoneNumber(String phoneNumber);
+
+    /**
+     * 로그인 ID로 사용자를 조회합니다.
+     * @param loginId 로그인 ID
+     * @return Optional<User> (사용자가 없을 수도 있으므로)
+     */
+    Optional<User> findByLoginId(String loginId);
+
+
 }
