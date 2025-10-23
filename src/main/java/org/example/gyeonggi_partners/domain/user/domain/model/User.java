@@ -3,7 +3,13 @@ package org.example.gyeonggi_partners.domain.user.domain.model;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
+import org.example.gyeonggi_partners.common.jwt.CustomUserDetails;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.regex.Pattern;
 
 /**
@@ -109,6 +115,26 @@ public class User {
                 .deletedAt(deletedAt)
                 .build();
     }
+
+
+    /**
+     * User 도메인 모델을 Spring Security의 UserDetails 객체로 변환합니다.
+     */
+    public UserDetails toUserDetails() {
+        Collection<GrantedAuthority> authorities =
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + this.role));
+
+        return new CustomUserDetails(
+                this.id,           // userId
+                this.nickname,     // nickname (순서 변경!)
+                this.email,        // email (순서 변경!)
+                this.role,         // role (순서 변경!)
+                this.loginId,      // loginId (순서 변경!)
+                this.loginPw,      // role
+                authorities        // authorities
+        );
+    }
+
 
     // ==================== Validation Methods ====================
 
