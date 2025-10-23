@@ -2,18 +2,19 @@ package org.example.gyeonggi_partners.domain.user.api;
 
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.gyeonggi_partners.common.dto.ApiResponse;
+import org.example.gyeonggi_partners.common.jwt.CustomUserDetails;
 import org.example.gyeonggi_partners.domain.user.api.dto.SignInRequest;
 import org.example.gyeonggi_partners.domain.user.api.dto.SignInResponse;
 import org.example.gyeonggi_partners.domain.user.application.AuthService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Auth", description = "사용자 인증 API")
 @RestController
@@ -35,6 +36,22 @@ public class AuthController {
 
         return ResponseEntity.ok(
                 ApiResponse.success(response,"로그인에 성공했습니다.")
+        );
+    }
+
+    @Operation(
+            summary = "로그아웃",
+            description = "현재 로그인된 사용자를 로그아웃하고 Refresh Token을 무효화합니다.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        authService.logoutByUserId(userDetails.getUserId());
+
+        return ResponseEntity.ok(
+                ApiResponse.success(null, "로그아웃되었습니다.")
         );
     }
 }

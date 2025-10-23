@@ -77,4 +77,14 @@ public class AuthService {
         }
     }
 
+    /**
+     * 로그아웃
+     * Redis에서 Refresh Token을 삭제하여 토큰 재발급 불가능하게 만듦
+     */
+    public void logoutByUserId(Long userId) {
+        // Redis에서 해당 유저의 Refresh Token 삭제
+        String key = REFRESH_TOKEN_PREFIX + userId;
+        redisTemplate.delete(key);
+    }
+
 }

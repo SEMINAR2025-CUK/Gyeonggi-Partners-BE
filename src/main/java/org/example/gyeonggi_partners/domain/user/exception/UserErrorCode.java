@@ -14,7 +14,10 @@ public enum UserErrorCode implements ErrorCode {
     INVALID_VERIFICATION_CODE(400, "C001", "인증번호가 올바르지 않거나 만료되었습니다."),
 
     // 로그인 관련
-    LOGIN_FAILED(401, "A001", "아이디 또는 비밀번호가 일치하지 않습니다.");
+    LOGIN_FAILED(401, "A001", "아이디 또는 비밀번호가 일치하지 않습니다."),
+    
+    // 토큰 관련
+    INVALID_TOKEN(401, "A002", "유효하지 않은 토큰입니다.");
 
     UserErrorCode(int status, String code, String message){
         this.status = status;
