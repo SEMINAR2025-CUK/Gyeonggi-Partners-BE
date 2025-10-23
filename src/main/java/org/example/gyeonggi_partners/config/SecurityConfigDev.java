@@ -3,9 +3,12 @@ package org.example.gyeonggi_partners.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -17,8 +20,15 @@ public class SecurityConfigDev {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // CSRF 보호 비활성화 (개발 초기)
-        http.csrf(AbstractHttpConfigurer::disable);
+
+        // 1. 기본 인증 방식 비활성화
+        http.csrf(AbstractHttpConfigurer::disable) // CSRF 보호 비활성화
+                .formLogin(AbstractHttpConfigurer::disable) // Form 기반 로그인 비활성화
+                .httpBasic(AbstractHttpConfigurer::disable); // HTTP Basic 인증 비활성화
+
+        // 2. 세션 정책을 STATELESS로 설정 (JWT는 세션을 사용하지 않음)
+        http.sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         // HTTP 요청에 대한 인가 규칙 설정
         http.authorizeHttpRequests(auth -> auth
@@ -28,6 +38,9 @@ public class SecurityConfigDev {
                         "/v3/api-docs/**"
                 ).permitAll()
 
+
+                // 인증 관련 경로 허용
+                .requestMatchers("/api/auth/**").permitAll()
                 // Actuator 헬스 체크 경로 허용
                 .requestMatchers("/actuator/health/**").permitAll()
 
@@ -46,4 +59,11 @@ public class SecurityConfigDev {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authConfig) throws Exception {
+        return authConfig.getAuthenticationManager();
+    }
+
 }
