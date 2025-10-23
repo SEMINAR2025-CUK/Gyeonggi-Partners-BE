@@ -41,6 +41,9 @@ public class JwtTokenProvider {
      * 로그인을 할떄 호출됩니다.
      */
     public TokenDto generateTokenDto(Authentication authentication) {
+        // CustomUserDetails에서 userId 추출
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        
         // 권한 정보들을 쉼표(,)로 구분된 문자열로 변환
         String authorities = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -48,13 +51,14 @@ public class JwtTokenProvider {
 
         long now = (new Date()).getTime();
 
-        // Access Token 생성
+        // Access Token 생성 (userId 포함!)
         Date accessTokenExpiresIn = new Date(now + jwtProperties.getAccessTokenExpiration());
         String accessToken = Jwts.builder()
                 .subject(authentication.getName())
                 .claim(AUTHORITIES_KEY, authorities)
+                .claim("userId", userDetails.getUserId())  // userId 추가!
                 .expiration(accessTokenExpiresIn)
-                .signWith(key) // 0.12.0 버전 이상부터는 Key 객체만 전달
+                .signWith(key)
                 .compact();
 
         // Refresh Token 생성
@@ -89,7 +93,21 @@ public class JwtTokenProvider {
                         .map(SimpleGrantedAuthority::new)
                         .toList();
 
-        UserDetails principal = new User(claims.getSubject(), "", authorities);
+        // JWT에서 userId 추출
+        Long userId = claims.get("userId", Long.class);
+        
+        // CustomUserDetails 객체 생성
+        // nickname, email, role은 JWT에 없으므로 null 또는 기본값
+        CustomUserDetails principal = new CustomUserDetails(
+                userId,
+                null,  // nickname
+                null,  // email
+                claims.get(AUTHORITIES_KEY).toString().replace("ROLE_", ""),  // role
+                claims.getSubject(),  // loginId
+                "",  // password
+                authorities
+        );
+        
         return new UsernamePasswordAuthenticationToken(principal, "", authorities);
     }
 
