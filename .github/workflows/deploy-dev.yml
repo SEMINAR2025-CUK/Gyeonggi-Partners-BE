@@ -10,17 +10,23 @@ on:
     # Pull Request가 'closed'(닫혔을 때) 상태일 때만 실행합니다.
     types: [ closed ]
 
+  # 2. 수동 실행
+  workflow_dispatch:
 # 워크플로우에 포함될 작업(Job)들의 묶음입니다.
 jobs:
   # 'deploy'라는 이름의 작업을 정의합니다. 이 작업은 하나의 가상 머신에서 실행됩니다.
   deploy:
-    # ❗️ 이 작업의 실행 조건을 명시합니다.
+    # 이 작업의 실행 조건을 명시합니다.
     # Pull Request가 'merged'(병합)된 상태로 닫혔을 경우에만 아래 단계를 실행합니다.
     # (단순히 닫기만 한 PR에서는 배포가 실행되지 않습니다.)
     if: github.event.pull_request.merged == true
 
     # 이 작업이 실행될 가상 환경을 지정합니다. (최신 버전의 우분투 리눅스)
     runs-on: ubuntu-latest
+
+    permissions:
+        contents: read
+        packages: write
 
     # 이 작업에서 순서대로 실행될 단계(Step)들입니다.
     steps:
