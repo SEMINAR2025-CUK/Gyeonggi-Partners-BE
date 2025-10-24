@@ -26,9 +26,10 @@ CREATE TYPE message_type_enum AS ENUM (
     'ENTRY',    -- 입장 알림 메시지 (시스템)
     'EXIT'      -- 퇴장 알림 메시지 (시스템)
 );
+
 CREATE TYPE proposal_status_enum AS ENUM (
     'DRAFTING',         -- 내용 작성 중
-    'SAVING'            -- 저장 상태
+    'SAVING',            -- 저장 상태
     'PENDING_CONSENT',  -- 동의 진행 중
     'CONSENT_FAILED',   -- 합의 실패
     'READY_TO_SUBMIT',  -- 제출 가능
