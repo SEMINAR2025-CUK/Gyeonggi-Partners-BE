@@ -98,6 +98,10 @@ jobs:
             
             # 컨테이너를 최신 이미지로 다시 시작합니다. --force-recreate는 컨테이너를 강제로 재생성하여 변경사항을 확실히 반영합니다.
             docker-compose -f docker-compose.dev.yml up -d --force-recreate
+
+            # +헬스체크
+            sleep 10
+            docker-compose -f docker-compose.dev.yml ps
             
             # 사용되지 않는 오래된 Docker 이미지를 삭제하여 서버 용량을 확보합니다.
             docker image prune -f
