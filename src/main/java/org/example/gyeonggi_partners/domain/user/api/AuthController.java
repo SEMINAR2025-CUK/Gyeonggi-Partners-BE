@@ -8,7 +8,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.gyeonggi_partners.common.dto.ApiResponse;
+import org.example.gyeonggi_partners.common.dto.TokenDto;
 import org.example.gyeonggi_partners.common.jwt.CustomUserDetails;
+import org.example.gyeonggi_partners.domain.user.api.dto.RefreshTokenRequest;
 import org.example.gyeonggi_partners.domain.user.api.dto.SignInRequest;
 import org.example.gyeonggi_partners.domain.user.api.dto.SignInResponse;
 import org.example.gyeonggi_partners.domain.user.application.AuthService;
@@ -52,6 +54,21 @@ public class AuthController {
 
         return ResponseEntity.ok(
                 ApiResponse.success(null, "로그아웃되었습니다.")
+        );
+    }
+
+    @Operation(
+            summary = "Access Token 재발급",
+            description = "Refresh Token으로 새로운 Access Token을 발급받습니다."
+    )
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<TokenDto>> refresh(
+            @RequestBody RefreshTokenRequest request) {
+
+        TokenDto tokenDto = authService.refresh(request.getRefreshToken());
+
+        return ResponseEntity.ok(
+                ApiResponse.success(tokenDto, "토큰이 갱신되었습니다.")
         );
     }
 }

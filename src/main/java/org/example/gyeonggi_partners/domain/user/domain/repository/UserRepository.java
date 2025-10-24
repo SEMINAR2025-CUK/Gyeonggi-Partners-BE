@@ -46,4 +46,8 @@ public interface UserRepository {
     Optional<User> findByLoginId(String loginId);
 
 
+    Optional<User> findById(Long id);
+
+
+
 }

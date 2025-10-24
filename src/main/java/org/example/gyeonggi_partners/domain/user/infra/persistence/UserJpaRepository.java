@@ -29,4 +29,7 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, Long> {
      * 로그인 ID로 UserEntity 조회
      */
     Optional<UserEntity> findByLoginId(String loginId);
+
+    Optional<UserEntity> findById(Long id);
+
 }

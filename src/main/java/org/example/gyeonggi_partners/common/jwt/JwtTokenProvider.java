@@ -61,11 +61,14 @@ public class JwtTokenProvider {
                 .signWith(key)
                 .compact();
 
-        // Refresh Token 생성
+        // Refresh Token (userId 추가!)
         String refreshToken = Jwts.builder()
+                .subject(String.valueOf(userDetails.getUserId())) // userId 추가
                 .expiration(new Date(now + jwtProperties.getRefreshTokenExpiration()))
                 .signWith(key)
                 .compact();
+
+
 
         return TokenDto.builder()
                 .grantType(BEARER_TYPE)
@@ -145,4 +148,34 @@ public class JwtTokenProvider {
             return e.getClaims();
         }
     }
+
+    // userId 추출 메서드 추가
+    public Long getUserIdFromToken(String token) {
+        Claims claims = parseClaims(token);
+        return Long.parseLong(claims.getSubject());
+    }
+
+    /**
+     * Access Token만 생성 (Refresh 시 사용)
+     */
+    public String generateAccessToken(Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+
+        String authorities = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(","));
+
+        long now = (new Date()).getTime();
+        Date accessTokenExpiresIn = new Date(now + jwtProperties.getAccessTokenExpiration());
+
+        return Jwts.builder()
+                .subject(authentication.getName())
+                .claim(AUTHORITIES_KEY, authorities)
+                .claim("userId", userDetails.getUserId())
+                .expiration(accessTokenExpiresIn)
+                .signWith(key)
+                .compact();
+    }
+
+
 }

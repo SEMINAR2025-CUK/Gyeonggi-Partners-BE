@@ -45,4 +45,11 @@ public class UserRepositoryImpl implements UserRepository {
                 .map(UserEntity::toDomain);
     }
 
+    @Override
+    public Optional<User> findById(Long id) {
+        return userJpaRepository.findById(id)
+                .map(UserEntity::toDomain);
+    }
+
+
 }
