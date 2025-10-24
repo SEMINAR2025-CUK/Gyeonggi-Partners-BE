@@ -10,6 +10,8 @@ on:
     # Pull Request가 'closed'(닫혔을 때) 상태일 때만 실행합니다.
     types: [ closed ]
 
+  # 2. 수동 실행
+  workflow_dispatch:
 # 워크플로우에 포함될 작업(Job)들의 묶음입니다.
 jobs:
   # 'deploy'라는 이름의 작업을 정의합니다. 이 작업은 하나의 가상 머신에서 실행됩니다.
