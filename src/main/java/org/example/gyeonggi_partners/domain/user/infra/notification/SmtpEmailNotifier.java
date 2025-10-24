@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  * 실제 Gmail SMTP를 사용하여 이메일 발송
  */
 @Component
-@Profile("local")  // local 프로파일에서만 활성화 (테스트용)
+@Profile({"local", "dev"})  // local 프로파일에서만 활성화 (테스트용)
 @RequiredArgsConstructor
 @Slf4j
 public class SmtpEmailNotifier implements EmailNotifier {
