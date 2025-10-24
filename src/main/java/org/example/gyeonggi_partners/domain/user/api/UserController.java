@@ -17,7 +17,7 @@ import java.util.Map;
  * User API Controller
  * 회원가입, 이메일 인증 등
  */
-@Tag(name = "User", description = "사용자 인증 API")
+@Tag(name = "User", description = "회원가입 및 회원관련 API")
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
