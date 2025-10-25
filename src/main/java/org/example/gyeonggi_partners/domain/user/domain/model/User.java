@@ -20,13 +20,13 @@ import java.util.regex.Pattern;
 public class User {
 
     //로그인 아이디 규칙
-    private static final int MAX_LOGIN_ID_LENGTH = 20;
+    private static final int MAX_LOGIN_ID_LENGTH = 30;
 
     //이름 규칙
-    private static final int MAX_NAME_LENGTH = 20;
+    private static final int MAX_NAME_LENGTH = 50;
 
     //닉네임 규칙
-    private static final int MAX_NICKNAME_LENGTH = 15;
+    private static final int MAX_NICKNAME_LENGTH = 50;
 
     //이메일 규칙
     private static final Pattern EMAIL_PATTERN =
