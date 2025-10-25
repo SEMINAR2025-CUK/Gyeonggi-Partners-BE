@@ -48,7 +48,7 @@ CREATE TABLE users
     nickname       VARCHAR(50) UNIQUE NOT NULL,
     email          VARCHAR(50) UNIQUE NOT NULL,
     phone_number   VARCHAR(20) UNIQUE NOT NULL,
-    role           user_role_enum     NOT NULL DEFAULT 'USER',
+    role           VARCHAR(20)     NOT NULL DEFAULT 'USER',
     created_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at     TIMESTAMP WITH TIME ZONE,
     deleted_at     TIMESTAMP WITH TIME ZONE
