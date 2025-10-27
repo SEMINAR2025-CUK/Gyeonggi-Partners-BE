@@ -52,6 +52,7 @@ public class UserService {
         validateDuplicateLoginId(req.getLoginId());
         validateDuplicateEmail(req.getEmail());
         validateDuplicatePhoneNumber(req.getPhoneNumber());
+        validateDuplicateUserNickname(req.getNickname());
 
         // 2. 평문 비밀번호 검증 (암호화 전)
         validatePlainPassword(req.getPassword());
@@ -108,6 +109,14 @@ public class UserService {
         }
     }
 
+    /**
+     * 이메일 중복 검증
+     */
+    private void validateDuplicateUserNickname(String nickname) {
+        if (userRepository.existsByUserNickname(nickname)) {
+            throw new BusinessException(UserErrorCode.DUPLICATE_USER_NICKNAME);
+        }
+    }
     /**
      * 평문 비밀번호 검증 (암호화 전)
      */

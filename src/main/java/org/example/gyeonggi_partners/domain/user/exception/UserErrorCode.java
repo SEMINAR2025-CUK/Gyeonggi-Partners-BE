@@ -9,7 +9,7 @@ public enum UserErrorCode implements ErrorCode {
     DUPLICATE_LOGIN_ID(409, "U001", "이미 사용 중인 아이디입니다."),
     DUPLICATE_EMAIL(409, "U002", "이미 사용 중인 이메일입니다."),
     DUPLICATE_PHONE_NUMBER(409, "U003", "이미 등록된 전화번호입니다."),
-
+    DUPLICATE_USER_NICKNAME(409, "U004", "이미 등록된 사용자 닉네임입니다."),
     // 이메일 인증 관련
     INVALID_VERIFICATION_CODE(400, "C001", "인증번호가 올바르지 않거나 만료되었습니다."),
 

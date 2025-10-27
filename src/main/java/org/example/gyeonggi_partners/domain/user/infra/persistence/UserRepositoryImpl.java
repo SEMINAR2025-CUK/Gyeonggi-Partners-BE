@@ -40,6 +40,11 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public boolean existsByUserNickname(String userNickname) {
+        return userJpaRepository.existsByNickname(userNickname);
+    }
+
+    @Override
     public Optional<User> findByLoginId(String loginId) {
         return userJpaRepository.findByLoginId(loginId)
                 .map(UserEntity::toDomain);
