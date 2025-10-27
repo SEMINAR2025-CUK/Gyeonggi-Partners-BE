@@ -39,6 +39,13 @@ public interface UserRepository {
     boolean existsByPhoneNumber(String phoneNumber);
 
     /**
+     * 사용자 닉네임 중복 확인
+     * @param userNickname 전화번호
+     * @return 존재 여부
+     */
+    boolean existsByUserNickname(String userNickname);
+
+    /**
      * 로그인 ID로 사용자를 조회합니다.
      * @param loginId 로그인 ID
      * @return Optional<User> (사용자가 없을 수도 있으므로)

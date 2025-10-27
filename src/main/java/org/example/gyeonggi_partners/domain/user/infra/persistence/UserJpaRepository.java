@@ -26,6 +26,11 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, Long> {
     boolean existsByPhoneNumber(String phoneNumber);
 
     /**
+     * 전화번호 존재 여부 확인
+     */
+    boolean existsByNickname(String nickname);
+
+    /**
      * 로그인 ID로 UserEntity 조회
      */
     Optional<UserEntity> findByLoginId(String loginId);
