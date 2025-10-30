@@ -43,6 +43,14 @@ public class MemberEntity {
         this.createdAt = createdAt;
     }
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, insertable = false, updatable = false)
+    private UserEntity user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id", nullable = false, insertable = false, updatable = false)
+    private DiscussionRoomEntity discussionRoom;
+
     /**
      * 도메인 모델을 엔티티로 변환 (Domain -> Entity)
      */

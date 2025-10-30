@@ -9,6 +9,9 @@ import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.AccessLe
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.DiscussionRoom;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.Region;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * DiscussionRoom JPA 엔티티
  * DB와 매핑되는 영속성 객체
@@ -37,6 +40,9 @@ public class DiscussionRoomEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "access_level", nullable = false)
     private AccessLevel accessLevel;
+
+    @OneToMany(mappedBy = "discussionRoom", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MemberEntity> members = new ArrayList<>();
 
     @Builder
     private DiscussionRoomEntity(Long id, String title, String description,
