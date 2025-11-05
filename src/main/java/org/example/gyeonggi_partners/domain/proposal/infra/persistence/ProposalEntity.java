@@ -7,7 +7,7 @@ import org.example.gyeonggi_partners.domain.proposal.domain.model.Consenter;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.ContentFormat;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.Proposal;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.SubmitStatus;
-import org.example.gyeonggi_partners.domain.proposal.infra.mock.RoomEntity;
+import org.example.gyeonggi_partners.domain.proposal.infra.stub.RoomEntity;
 import org.example.gyeonggi_partners.domain.user.infra.persistence.UserEntity;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
