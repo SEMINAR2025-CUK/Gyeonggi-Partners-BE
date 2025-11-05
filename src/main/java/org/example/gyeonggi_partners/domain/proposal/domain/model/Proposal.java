@@ -22,7 +22,7 @@ public class Proposal {
 
 
     // Id - 제안서, 논의방, 작성자
-    private Long proposalId;
+    private Long id;
     private Long roomId;
     private Long authorId;
 
@@ -94,6 +94,24 @@ public class Proposal {
                 this.status = SubmitStatus.SUBMITTABLE;
             }
         }
+    }
+
+    public static Proposal restore(Long id, Long roomId, Long authorId, String title, ContentFormat contents,
+                            List<Consenter> consents, SubmitStatus status, LocalDateTime deadline, LocalDateTime createdAt,
+                            LocalDateTime updatedAt, LocalDateTime deletedAt) {
+        return Proposal.builder()
+                .id(id)
+                .roomId(roomId)
+                .authorId(authorId)
+                .title(title)
+                .contents(contents)
+                .consents(consents)
+                .status(status)
+                .deadline(deadline)
+                .createdAt(createdAt)
+                .updatedAt(updatedAt)
+                .deletedAt(deletedAt)
+                .build();
     }
 
 
