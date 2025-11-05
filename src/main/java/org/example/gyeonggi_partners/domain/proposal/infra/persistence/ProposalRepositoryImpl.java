@@ -1,0 +1,32 @@
+package org.example.gyeonggi_partners.domain.proposal.infra.persistence;
+
+import lombok.RequiredArgsConstructor;
+import org.example.gyeonggi_partners.domain.proposal.domain.model.Proposal;
+import org.example.gyeonggi_partners.domain.proposal.domain.repository.ProposalRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+@RequiredArgsConstructor
+public class ProposalRepositoryImpl implements ProposalRepository {
+
+    private final ProposalJpaRepository proposalJpaRepository;
+
+    @Override
+    public Proposal save(Proposal proposal) {
+        ProposalEntity entity = ProposalEntity.fromDomain(proposal);
+        ProposalEntity savedEntity = proposalJpaRepository.save(entity);
+        
+        return savedEntity.toDomain();
+    }
+
+    @Override
+    public Optional<Proposal> findById(Long proposalId) {
+        Optional<ProposalEntity> proposalEntity = proposalJpaRepository.findById(proposalId);
+
+        return proposalEntity.map(ProposalEntity::toDomain);
+    }
+
+
+}
