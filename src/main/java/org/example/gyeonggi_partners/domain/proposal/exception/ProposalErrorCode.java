@@ -13,7 +13,11 @@ public enum ProposalErrorCode implements ErrorCode {
     PROPOSAL_BEING_EDITED(409, "P002", "다른 사용자가 현재 제안서를 수정 중입니다."),
     ALREADY_CONSENTED(409, "P003", "이미 동의한 제안서입니다."),
     PROPOSAL_LOCKED(409, "P004", "현재 동의가 진행 중인 제안서는 수정할 수 없습니다."),
-    EDIT_CONFLICT(409, "P005", "다른 사용자에 의해 문서가 수정되었습니다. 페이지를 새로고침 해주세요.");
+    EDIT_CONFLICT(409, "P005", "다른 사용자에 의해 문서가 수정되었습니다. 페이지를 새로고침 해주세요."),
+
+    // 유효하지 않은 client 요청
+    INVALID_TITLE_LENGTH(400, "P006", "제목의 길이가 올바르지 않습니다."),
+    EMPTY_PROPOSAL_BODY(400, "P007", "제안서 본문 내용이 없습니다.");
 
     private final int status;
     private final String code;
