@@ -57,6 +57,10 @@ public class UserEntity extends BaseEntity {
         this.role = role;
     }
 
+    public UserEntity(Long id) {
+        this.id = id;
+    }
+
     /**
      * 도메인 모델을 엔티티로 변환 (Domain -> Entity)
      */
