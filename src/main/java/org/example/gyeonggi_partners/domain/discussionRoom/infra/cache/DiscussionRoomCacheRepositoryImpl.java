@@ -4,8 +4,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.DiscussionRoom;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.CachedDiscussionRoom;
-import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.PagedRoomIds;
+import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomsPage;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
@@ -31,48 +33,55 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
     private final RedisTemplate<String, Object> redisTemplate;
     
     // TTL 상수 (결정사항 8)
-    private static final Duration TTL_ROOM_DETAIL = Duration.ofHours(24);      // 24시간
-    private static final Duration TTL_LIST_LATEST = Duration.ofHours(1);       // 1시간
-    private static final Duration TTL_USER_JOINED = Duration.ofHours(12);      // 12시간
+    private static final Duration TTL_ROOM_INFO = Duration.ofHours(24);      // 24시간
+    private static final Duration TTL_RECENT_ROOMS = Duration.ofHours(1);       // 1시간
+    private static final Duration TTL_USER_ROOM = Duration.ofHours(12);      // 12시간
     private static final Duration TTL_ROOM_MEMBERS = Duration.ofHours(24);     // 24시간 (room:{id}와 동일)
     
     // ZSet 크기 제한 상수 (결정사항 11)
     private static final int MAX_LATEST_LIST_SIZE = 10_000;
     private static final int MAX_USER_JOINED_SIZE = 100;
     
-    // ==================== 논의방 생성 ====================
+    // ==================== 메인 시나리오 ====================
     
+    // 논의방 생성
     @Override
-    public void cacheNewRoom(CachedDiscussionRoom cachedRoom, Long creatorId, long timestamp) {
+    public void saveNewRoomToRedis(CachedDiscussionRoom cachedRoom, Long creatorId, long timestamp) {
         try {
-            String roomKey = RedisKeyGenerator.roomDetail(cachedRoom.getId());
-            String latestKey = RedisKeyGenerator.listLatest();
-            String userJoinedKey = RedisKeyGenerator.userJoined(creatorId);
+            //캐시 키 생성
+            String roomInfoKey = RedisKeyGenerator.generateRoomInfoKey(cachedRoom.getId());
+            String recentRoomsKey = RedisKeyGenerator.generateRecentRoomsKey();
+            String userRoomsKey = RedisKeyGenerator.generateUserRoomsKey(creatorId);
             
             // 결정사항 9: Redis Transaction (MULTI/EXEC) 사용
-            redisTemplate.execute(session -> {
-                session.multi();
-                
-                // 1. room:{id} Hash 저장
-                session.opsForHash().putAll(roomKey, cachedRoom.toHashMap());
-                session.expire(roomKey, TTL_ROOM_DETAIL);
-                
-                // 2. list:latest ZSet 업데이트 (결정사항 2-2: 최신순)
-                session.opsForZSet().add(latestKey, cachedRoom.getId(), timestamp);
-                session.expire(latestKey, TTL_LIST_LATEST);
-                
-                // 3. user:{creatorId}:joined ZSet 업데이트
-                session.opsForZSet().add(userJoinedKey, cachedRoom.getId(), timestamp);
-                session.expire(userJoinedKey, TTL_USER_JOINED);
-                
-                return session.exec();
+            redisTemplate.execute(new SessionCallback<List<Object>>() {
+
+                @Override
+                @SuppressWarnings("unchecked")
+                public List<Object> execute(RedisOperations operations) {
+                    operations.multi();
+                    
+                    // 1. room:{id} Hash 저장
+                    operations.opsForHash().putAll(roomInfoKey, cachedRoom.convertToCacheData());
+                    operations.expire(roomInfoKey, TTL_ROOM_INFO);
+                    
+                    // 2. list:latest ZSet 업데이트 (결정사항 2-2: 최신순)
+                    operations.opsForZSet().add(recentRoomsKey, cachedRoom.getId(), (double) timestamp);
+                    operations.expire(recentRoomsKey, TTL_RECENT_ROOMS);
+                    
+                    // 3. user:{creatorId}:joined ZSet 업데이트
+                    operations.opsForZSet().add(userRoomsKey, cachedRoom.getId(), (double) timestamp);
+                    operations.expire(userRoomsKey, TTL_USER_ROOM);
+                    
+                    return operations.exec();
+                }
             });
             
             // 결정사항 11-1: list:latest 크기 제한 (매번 추가 시)
-            trimLatestList();
+            limitLatestSize();
             
             // 결정사항 11-2: user:joined 크기 제한
-            trimUserJoinedList(creatorId);
+            limitUserJoinedList(creatorId);
             
             log.debug("캐시 저장 성공 - room:{}, creator:{}", cachedRoom.getId(), creatorId);
             
@@ -82,57 +91,18 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
         }
     }
     
-    // ==================== 논의방 조회 ====================
-    
+    // 전체 논의방 목록 조회 (페이징)
     @Override
-    public Optional<CachedDiscussionRoom> getRoomById(Long roomId) {
+    public DiscussionRoomsPage retrieveTotalRoomsByPage(int page, int size) {
         try {
-            String roomKey = RedisKeyGenerator.roomDetail(roomId);
-            Map<Object, Object> entries = redisTemplate.opsForHash().entries(roomKey);
-            
-            if (entries.isEmpty()) {
-                log.debug("캐시 미스 - room:{}", roomId);
-                return Optional.empty();
-            }
-            
-            CachedDiscussionRoom cached = CachedDiscussionRoom.fromHashMap(entries);
-            log.debug("캐시 히트 - room:{}", roomId);
-            return Optional.ofNullable(cached);
-            
-        } catch (Exception e) {
-            log.error("캐시 조회 실패 - room:{}, error: {}", roomId, e.getMessage(), e);
-            return Optional.empty();
-        }
-    }
-    
-    @Override
-    public List<CachedDiscussionRoom> getRoomsByIds(List<Long> roomIds) {
-        if (roomIds == null || roomIds.isEmpty()) {
-            return Collections.emptyList();
-        }
-        
-        List<CachedDiscussionRoom> result = new ArrayList<>();
-        
-        for (Long roomId : roomIds) {
-            getRoomById(roomId).ifPresent(result::add);
-        }
-        
-        return result;
-    }
-    
-    // ==================== 전체 목록 조회 ====================
-    
-    @Override
-    public PagedRoomIds getLatestRoomIds(int page, int size) {
-        try {
-            String latestKey = RedisKeyGenerator.listLatest();
+            String latestKey = RedisKeyGenerator.generateRecentRoomsKey();
             
             // 결정사항 5-3: 페이지네이션이므로 총 개수 반환
             Long totalCount = redisTemplate.opsForZSet().zCard(latestKey);
             if (totalCount == null || totalCount == 0) {
-                return PagedRoomIds.builder()
+                return DiscussionRoomsPage.builder()
                         .roomIds(Collections.emptyList())
-                        .totalCount(0)
+                        .totalRoomsCount(0)
                         .build();
             }
             
@@ -145,9 +115,9 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
                     .reverseRange(latestKey, start, end);
             
             if (roomIdsSet == null || roomIdsSet.isEmpty()) {
-                return PagedRoomIds.builder()
+                return DiscussionRoomsPage.builder()
                         .roomIds(Collections.emptyList())
-                        .totalCount(totalCount)
+                        .totalRoomsCount(totalCount)
                         .build();
             }
             
@@ -158,34 +128,33 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
             log.debug("전체 목록 조회 - page:{}, size:{}, total:{}, found:{}", 
                     page, size, totalCount, roomIds.size());
             
-            return PagedRoomIds.builder()
+            return DiscussionRoomsPage.builder()
                     .roomIds(roomIds)
-                    .totalCount(totalCount)
+                    .totalRoomsCount(totalCount)
                     .build();
             
         } catch (Exception e) {
             log.error("전체 목록 조회 실패 - page:{}, size:{}, error: {}", 
                     page, size, e.getMessage(), e);
-            return PagedRoomIds.builder()
+            return DiscussionRoomsPage.builder()
                     .roomIds(Collections.emptyList())
-                    .totalCount(0)
+                    .totalRoomsCount(0)
                     .build();
         }
     }
     
-    // ==================== 사용자 참여 방 조회 ====================
-    
+    // 사용자 참여 방 조회 (페이징)
     @Override
-    public PagedRoomIds getUserJoinedRoomIds(Long userId, int page, int size) {
+    public DiscussionRoomsPage retrieveJoinedRoomsByPage(Long userId, int page, int size) {
         try {
-            String userJoinedKey = RedisKeyGenerator.userJoined(userId);
+            String userJoinedKey = RedisKeyGenerator.generateUserRoomsKey(userId);
             
             // 총 개수 조회
             Long totalCount = redisTemplate.opsForZSet().zCard(userJoinedKey);
             if (totalCount == null || totalCount == 0) {
-                return PagedRoomIds.builder()
+                return DiscussionRoomsPage.builder()
                         .roomIds(Collections.emptyList())
-                        .totalCount(0)
+                        .totalRoomsCount(0)
                         .build();
             }
             
@@ -197,9 +166,9 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
                     .reverseRange(userJoinedKey, start, end);
             
             if (roomIdsSet == null || roomIdsSet.isEmpty()) {
-                return PagedRoomIds.builder()
+                return DiscussionRoomsPage.builder()
                         .roomIds(Collections.emptyList())
-                        .totalCount(totalCount)
+                        .totalRoomsCount(totalCount)
                         .build();
             }
             
@@ -210,50 +179,53 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
             log.debug("사용자 참여 방 조회 - user:{}, page:{}, size:{}, total:{}, found:{}", 
                     userId, page, size, totalCount, roomIds.size());
             
-            return PagedRoomIds.builder()
+            return DiscussionRoomsPage.builder()
                     .roomIds(roomIds)
-                    .totalCount(totalCount)
+                    .totalRoomsCount(totalCount)
                     .build();
             
         } catch (Exception e) {
             log.error("사용자 참여 방 조회 실패 - user:{}, page:{}, size:{}, error: {}", 
                     userId, page, size, e.getMessage(), e);
-            return PagedRoomIds.builder()
+            return DiscussionRoomsPage.builder()
                     .roomIds(Collections.emptyList())
-                    .totalCount(0)
+                    .totalRoomsCount(0)
                     .build();
         }
     }
     
-    // ==================== 논의방 입장 ====================
-    
+    // 논의방 입장
     @Override
     public void addUserToRoom(Long userId, Long roomId, long timestamp) {
         try {
-            String userJoinedKey = RedisKeyGenerator.userJoined(userId);
-            String roomMembersKey = RedisKeyGenerator.roomMembers(roomId);
-            String roomKey = RedisKeyGenerator.roomDetail(roomId);
+            String userJoinedKey = RedisKeyGenerator.generateUserRoomsKey(userId);
+            String roomMembersKey = RedisKeyGenerator.generateRoomMembersKey(roomId);
+            String roomKey = RedisKeyGenerator.generateRoomInfoKey(roomId);
             
             // Transaction으로 원자적 처리
-            redisTemplate.execute(session -> {
-                session.multi();
-                
-                // 1. user:{userId}:joined ZSet에 추가
-                session.opsForZSet().add(userJoinedKey, roomId, timestamp);
-                session.expire(userJoinedKey, TTL_USER_JOINED);
-                
-                // 2. room:{roomId}:members List에 추가 (결정사항 6-1: List 사용)
-                session.opsForList().rightPush(roomMembersKey, userId);
-                session.expire(roomMembersKey, TTL_ROOM_MEMBERS);
-                
-                // 3. room:{roomId} currentUsers 증가 (결정사항 14-2: HINCRBY)
-                session.opsForHash().increment(roomKey, "currentUsers", 1);
-                
-                return session.exec();
+            redisTemplate.execute(new SessionCallback<List<Object>>() {
+                @Override
+                @SuppressWarnings("unchecked")
+                public List<Object> execute(RedisOperations operations) {
+                    operations.multi();
+                    
+                    // 1. user:{userId}:joined ZSet에 추가
+                    operations.opsForZSet().add(userJoinedKey, roomId, (double) timestamp);
+                    operations.expire(userJoinedKey, TTL_USER_ROOM);
+                    
+                    // 2. room:{roomId}:members List에 추가 (결정사항 6-1: List 사용)
+                    operations.opsForList().rightPush(roomMembersKey, userId);
+                    operations.expire(roomMembersKey, TTL_ROOM_MEMBERS);
+                    
+                    // 3. room:{roomId} currentUsers 증가 (결정사항 14-2: HINCRBY)
+                    operations.opsForHash().increment(roomKey, "currentUsers", 1);
+                    
+                    return operations.exec();
+                }
             });
             
             // user:joined 크기 제한
-            trimUserJoinedList(userId);
+            limitUserJoinedList(userId);
             
             log.debug("논의방 입장 - user:{}, room:{}", userId, roomId);
             
@@ -263,29 +235,113 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
         }
     }
     
-    // ==================== 논의방 퇴장 ====================
+    // 논의방 삭제
+    @Override
+    public void evictRoomCache(Long roomId, Long creatorId) {
+        try {
+            String roomKey = RedisKeyGenerator.generateRoomInfoKey(roomId);
+            String roomMembersKey = RedisKeyGenerator.generateRoomMembersKey(roomId);
+            String latestKey = RedisKeyGenerator.generateRecentRoomsKey();
+            String userJoinedKey = RedisKeyGenerator.generateUserRoomsKey(creatorId);
+            
+            // 결정사항 4-1: 1~3번 모두 삭제
+            // 결정사항 4-3: 즉시 제거
+            redisTemplate.execute(new SessionCallback<List<Object>>() {
+                @Override
+                @SuppressWarnings("unchecked")
+                public List<Object> execute(RedisOperations operations) {
+                    operations.multi();
+                    
+                    // 1. room:{roomId} 삭제
+                    operations.delete(roomKey);
+                    
+                    // 2. room:{roomId}:members 삭제
+                    operations.delete(roomMembersKey);
+                    
+                    // 3. list:latest에서 제거
+                    operations.opsForZSet().remove(latestKey, roomId);
+                    
+                    // 4. user:{creatorId}:joined에서 제거
+                    operations.opsForZSet().remove(userJoinedKey, roomId);
+                    
+                    return operations.exec();
+                }
+            });
+            
+            log.info("캐시 삭제 완료 - room:{}, creator:{}", roomId, creatorId);
+            
+        } catch (Exception e) {
+            log.error("캐시 삭제 실패 - room:{}, creator:{}, error: {}", 
+                    roomId, creatorId, e.getMessage(), e);
+        }
+    }
     
+    // ==================== 헬퍼 메서드 ====================
+    
+    // 단일 논의방 조회
+    @Override
+    public Optional<CachedDiscussionRoom> retrieveCachingRoom(Long roomId) {
+        try {
+            String roomKey = RedisKeyGenerator.generateRoomInfoKey(roomId);
+            Map<Object, Object> entries = redisTemplate.opsForHash().entries(roomKey);
+            
+            if (entries.isEmpty()) {
+                log.debug("캐시 미스 - room:{}", roomId);
+                return Optional.empty();
+            }
+            
+            CachedDiscussionRoom cached = CachedDiscussionRoom.convertToJavaData(entries);
+            log.debug("캐시 히트 - room:{}", roomId);
+            return Optional.ofNullable(cached);
+            
+        } catch (Exception e) {
+            log.error("캐시 조회 실패 - room:{}, error: {}", roomId, e.getMessage(), e);
+            return Optional.empty();
+        }
+    }
+    
+    // 여러 논의방 일괄 조회
+    @Override
+    public List<CachedDiscussionRoom> retrieveTotalCachingRoom(List<Long> roomIds) {
+        if (roomIds == null || roomIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        
+        List<CachedDiscussionRoom> result = new ArrayList<>();
+        
+        for (Long roomId : roomIds) {
+            retrieveCachingRoom(roomId).ifPresent(result::add);
+        }
+        
+        return result;
+    }
+    
+    // 논의방 퇴장
     @Override
     public void removeUserFromRoom(Long userId, Long roomId) {
         try {
-            String userJoinedKey = RedisKeyGenerator.userJoined(userId);
-            String roomMembersKey = RedisKeyGenerator.roomMembers(roomId);
-            String roomKey = RedisKeyGenerator.roomDetail(roomId);
+            String userJoinedKey = RedisKeyGenerator.generateUserRoomsKey(userId);
+            String roomMembersKey = RedisKeyGenerator.generateRoomMembersKey(roomId);
+            String roomKey = RedisKeyGenerator.generateRoomInfoKey(roomId);
             
             // Transaction으로 원자적 처리
-            redisTemplate.execute(session -> {
-                session.multi();
-                
-                // 1. user:{userId}:joined ZSet에서 제거
-                session.opsForZSet().remove(userJoinedKey, roomId);
-                
-                // 2. room:{roomId}:members List에서 제거
-                session.opsForList().remove(roomMembersKey, 0, userId);
-                
-                // 3. room:{roomId} currentUsers 감소
-                session.opsForHash().increment(roomKey, "currentUsers", -1);
-                
-                return session.exec();
+            redisTemplate.execute(new SessionCallback<List<Object>>() {
+                @Override
+                @SuppressWarnings("unchecked")
+                public List<Object> execute(RedisOperations operations) {
+                    operations.multi();
+                    
+                    // 1. user:{userId}:joined ZSet에서 제거
+                    operations.opsForZSet().remove(userJoinedKey, roomId);
+                    
+                    // 2. room:{roomId}:members List에서 제거
+                    operations.opsForList().remove(roomMembersKey, 0, userId);
+                    
+                    // 3. room:{roomId} currentUsers 감소
+                    operations.opsForHash().increment(roomKey, "currentUsers", -1);
+                    
+                    return operations.exec();
+                }
             });
             
             log.debug("논의방 퇴장 - user:{}, room:{}", userId, roomId);
@@ -296,12 +352,11 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
         }
     }
     
-    // ==================== 멤버 목록 조회 ====================
-    
+    // 멤버 목록 조회
     @Override
-    public List<Long> getRoomMemberIds(Long roomId) {
+    public List<Long> retrieveRoomMembers(Long roomId) {
         try {
-            String roomMembersKey = RedisKeyGenerator.roomMembers(roomId);
+            String roomMembersKey = RedisKeyGenerator.generateRoomMembersKey(roomId);
             
             // 결정사항 6-1: List 사용
             List<Object> members = redisTemplate.opsForList().range(roomMembersKey, 0, -1);
@@ -324,6 +379,7 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
         }
     }
     
+    // 멤버 목록 캐싱
     @Override
     public void cacheRoomMembers(Long roomId, List<Long> memberIds) {
         if (memberIds == null || memberIds.isEmpty()) {
@@ -331,7 +387,7 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
         }
         
         try {
-            String roomMembersKey = RedisKeyGenerator.roomMembers(roomId);
+            String roomMembersKey = RedisKeyGenerator.generateRoomMembersKey(roomId);
             
             // 기존 데이터 삭제 후 재저장
             redisTemplate.delete(roomMembersKey);
@@ -345,50 +401,11 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
         }
     }
     
-    // ==================== 논의방 삭제 ====================
-    
+    // 전체 목록 크기 제한
     @Override
-    public void deleteRoomCache(Long roomId, Long creatorId) {
+    public void limitLatestSize() {
         try {
-            String roomKey = RedisKeyGenerator.roomDetail(roomId);
-            String roomMembersKey = RedisKeyGenerator.roomMembers(roomId);
-            String latestKey = RedisKeyGenerator.listLatest();
-            String userJoinedKey = RedisKeyGenerator.userJoined(creatorId);
-            
-            // 결정사항 4-1: 1~3번 모두 삭제
-            // 결정사항 4-3: 즉시 제거
-            redisTemplate.execute(session -> {
-                session.multi();
-                
-                // 1. room:{roomId} 삭제
-                session.delete(roomKey);
-                
-                // 2. room:{roomId}:members 삭제
-                session.delete(roomMembersKey);
-                
-                // 3. list:latest에서 제거
-                session.opsForZSet().remove(latestKey, roomId);
-                
-                // 4. user:{creatorId}:joined에서 제거
-                session.opsForZSet().remove(userJoinedKey, roomId);
-                
-                return session.exec();
-            });
-            
-            log.info("캐시 삭제 완료 - room:{}, creator:{}", roomId, creatorId);
-            
-        } catch (Exception e) {
-            log.error("캐시 삭제 실패 - room:{}, creator:{}, error: {}", 
-                    roomId, creatorId, e.getMessage(), e);
-        }
-    }
-    
-    // ==================== ZSet 크기 제한 ====================
-    
-    @Override
-    public void trimLatestList() {
-        try {
-            String latestKey = RedisKeyGenerator.listLatest();
+            String latestKey = RedisKeyGenerator.generateRecentRoomsKey();
             Long count = redisTemplate.opsForZSet().zCard(latestKey);
             
             if (count != null && count > MAX_LATEST_LIST_SIZE) {
@@ -404,10 +421,11 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
         }
     }
     
+    // 사용자 참여 목록 크기 제한
     @Override
-    public void trimUserJoinedList(Long userId) {
+    public void limitUserJoinedList(Long userId) {
         try {
-            String userJoinedKey = RedisKeyGenerator.userJoined(userId);
+            String userJoinedKey = RedisKeyGenerator.generateUserRoomsKey(userId);
             Long count = redisTemplate.opsForZSet().zCard(userJoinedKey);
             
             if (count != null && count > MAX_USER_JOINED_SIZE) {
@@ -424,8 +442,7 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
         }
     }
     
-    // ==================== 캐시 워밍 ====================
-    
+    // 캐시 워밍
     @Override
     public void warmUpCache(List<DiscussionRoom> rooms, List<Integer> currentUsersCounts) {
         if (rooms == null || rooms.isEmpty()) {
@@ -445,10 +462,10 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
                 int currentUsers = currentUsersCounts.get(i);
                 
                 CachedDiscussionRoom cached = CachedDiscussionRoom.fromDomain(room, currentUsers);
-                String roomKey = RedisKeyGenerator.roomDetail(room.getId());
+                String roomKey = RedisKeyGenerator.generateRoomInfoKey(room.getId());
                 
-                redisTemplate.opsForHash().putAll(roomKey, cached.toHashMap());
-                redisTemplate.expire(roomKey, TTL_ROOM_DETAIL);
+                redisTemplate.opsForHash().putAll(roomKey, cached.convertToCacheData());
+                redisTemplate.expire(roomKey, TTL_ROOM_INFO);
                 
                 cachedCount++;
             }

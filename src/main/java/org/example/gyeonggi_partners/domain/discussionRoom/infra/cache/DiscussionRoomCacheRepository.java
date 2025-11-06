@@ -2,7 +2,7 @@ package org.example.gyeonggi_partners.domain.discussionRoom.infra.cache;
 
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.DiscussionRoom;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.CachedDiscussionRoom;
-import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.PagedRoomIds;
+import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomsPage;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,7 +20,7 @@ import java.util.Optional;
  */
 public interface DiscussionRoomCacheRepository {
     
-    // ==================== 논의방 생성 ====================
+    // ==================== 메인 시나리오 ====================
     
     /**
      * 논의방 생성 시 Redis 캐시 업데이트 (원자적 처리)
@@ -38,27 +38,7 @@ public interface DiscussionRoomCacheRepository {
      * @param creatorId 생성자(방장) ID
      * @param timestamp 생성 시각 (밀리초 단위)
      */
-    void cacheNewRoom(CachedDiscussionRoom cachedRoom, Long creatorId, long timestamp);
-    
-    // ==================== 논의방 조회 ====================
-    
-    /**
-     * 논의방 상세 정보 조회 (room:{id})
-     * 
-     * @param roomId 논의방 ID
-     * @return 캐시된 논의방 정보 (없으면 Empty)
-     */
-    Optional<CachedDiscussionRoom> getRoomById(Long roomId);
-    
-    /**
-     * 여러 논의방 상세 정보 일괄 조회
-     * 
-     * @param roomIds 논의방 ID 목록
-     * @return 캐시된 논의방 목록 (캐시 미스는 제외)
-     */
-    List<CachedDiscussionRoom> getRoomsByIds(List<Long> roomIds);
-    
-    // ==================== 전체 목록 조회 ====================
+    void saveNewRoomToRedis(CachedDiscussionRoom cachedRoom, Long creatorId, long timestamp);
     
     /**
      * 전체 논의방 최신순 목록 조회 (페이징)
@@ -70,9 +50,7 @@ public interface DiscussionRoomCacheRepository {
      * @param size 페이지 크기 (결정사항 5-1: 15개)
      * @return 페이징된 논의방 ID 목록 + 총 개수
      */
-    PagedRoomIds getLatestRoomIds(int page, int size);
-    
-    // ==================== 사용자 참여 방 조회 ====================
+    DiscussionRoomsPage retrieveTotalRoomsByPage(int page, int size);
     
     /**
      * 사용자가 참여한 논의방 목록 조회 (최신 참여순, 페이징)
@@ -84,9 +62,7 @@ public interface DiscussionRoomCacheRepository {
      * @param size 페이지 크기
      * @return 페이징된 논의방 ID 목록 + 총 개수
      */
-    PagedRoomIds getUserJoinedRoomIds(Long userId, int page, int size);
-    
-    // ==================== 논의방 입장 ====================
+    DiscussionRoomsPage retrieveJoinedRoomsByPage(Long userId, int page, int size);
     
     /**
      * 사용자가 논의방에 입장 (원자적 처리)
@@ -103,45 +79,6 @@ public interface DiscussionRoomCacheRepository {
      * @param timestamp 입장 시각 (밀리초)
      */
     void addUserToRoom(Long userId, Long roomId, long timestamp);
-    
-    // ==================== 논의방 퇴장 ====================
-    
-    /**
-     * 사용자가 논의방에서 퇴장 (원자적 처리)
-     * 
-     * <p>다음 3가지 작업을 원자적으로 수행:</p>
-     * <ol>
-     *   <li>user:{userId}:joined ZSet에서 roomId 제거</li>
-     *   <li>room:{roomId}:members List에서 userId 제거</li>
-     *   <li>room:{roomId} currentUsers 감소 (HINCRBY -1)</li>
-     * </ol>
-     * 
-     * @param userId 사용자 ID
-     * @param roomId 논의방 ID
-     */
-    void removeUserFromRoom(Long userId, Long roomId);
-    
-    // ==================== 멤버 목록 조회 ====================
-    
-    /**
-     * 논의방 멤버 목록 조회
-     * 
-     * <p>결정사항 6-1: List 자료구조 사용</p>
-     * 
-     * @param roomId 논의방 ID
-     * @return 멤버 ID 목록 (캐시 미스 시 빈 리스트)
-     */
-    List<Long> getRoomMemberIds(Long roomId);
-    
-    /**
-     * 논의방 멤버 목록 캐싱
-     * 
-     * @param roomId 논의방 ID
-     * @param memberIds 멤버 ID 목록
-     */
-    void cacheRoomMembers(Long roomId, List<Long> memberIds);
-    
-    // ==================== 논의방 삭제 ====================
     
     /**
      * 논의방 삭제 시 캐시 무효화 (비동기)
@@ -161,9 +98,58 @@ public interface DiscussionRoomCacheRepository {
      * @param roomId 논의방 ID
      * @param creatorId 생성자(방장) ID
      */
-    void deleteRoomCache(Long roomId, Long creatorId);
+    void evictRoomCache(Long roomId, Long creatorId);
     
-    // ==================== ZSet 크기 제한 ====================
+    // ==================== 헬퍼 / 내부 함수 ====================
+    
+    /**
+     * 논의방 정보 조회 (room:{id})
+     * 
+     * @param roomId 논의방 ID
+     * @return 캐시된 논의방 정보 (없으면 Empty)
+     */
+    Optional<CachedDiscussionRoom> retrieveCachingRoom(Long roomId);
+    
+    /**
+     * 여러 논의방 정보 일괄 조회 (전체조회시 사용)
+     * 
+     * @param roomIds 논의방 ID 목록
+     * @return 캐시된 논의방 목록 (캐시 미스는 제외)
+     */
+    List<CachedDiscussionRoom> retrieveTotalCachingRoom(List<Long> roomIds);
+    
+    /**
+     * 사용자가 논의방에서 퇴장 (원자적 처리)
+     * 
+     * <p>다음 3가지 작업을 원자적으로 수행:</p>
+     * <ol>
+     *   <li>user:{userId}:joined ZSet에서 roomId 제거</li>
+     *   <li>room:{roomId}:members List에서 userId 제거</li>
+     *   <li>room:{roomId} currentUsers 감소 (HINCRBY -1)</li>
+     * </ol>
+     * 
+     * @param userId 사용자 ID
+     * @param roomId 논의방 ID
+     */
+    void removeUserFromRoom(Long userId, Long roomId);
+    
+    /**
+     * 논의방 멤버 목록 조회
+     * 
+     * <p>결정사항 6-1: List 자료구조 사용</p>
+     * 
+     * @param roomId 논의방 ID
+     * @return 멤버 ID 목록 (캐시 미스 시 빈 리스트)
+     */
+    List<Long> retrieveRoomMembers(Long roomId);
+    
+    /**
+     * 논의방 멤버 목록 캐싱
+     * 
+     * @param roomId 논의방 ID
+     * @param memberIds 멤버 ID 목록
+     */
+    void cacheRoomMembers(Long roomId, List<Long> memberIds);
     
     /**
      * list:latest ZSet 크기 제한
@@ -171,16 +157,14 @@ public interface DiscussionRoomCacheRepository {
      * <p>결정사항 11-1: 최대 10,000개 유지</p>
      * <p>결정사항 11-2: 매번 추가 시 자동 제거</p>
      */
-    void trimLatestList();
+    void limitLatestSize();
     
     /**
      * user:{userId}:joined ZSet 크기 제한
      * 
      * <p>결정사항 11-2: 최대 100개 유지</p>
      */
-    void trimUserJoinedList(Long userId);
-    
-    // ==================== 캐시 워밍 ====================
+    void limitUserJoinedList(Long userId);
     
     /**
      * 서버 시작 시 캐시 워밍
