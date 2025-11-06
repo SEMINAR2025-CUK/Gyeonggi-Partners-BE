@@ -16,7 +16,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PagedRoomIds {
+public class DiscussionRoomsPage {
     
     /**
      * 논의방 ID 목록
@@ -27,13 +27,13 @@ public class PagedRoomIds {
      * 전체 논의방 수
      * ZCARD 명령어로 조회한 값
      */
-    private long totalCount;
+    private long totalRoomsCount;
     
     /**
      * 전체 페이지 수
      */
     public int getTotalPages(int pageSize) {
-        return (int) Math.ceil((double) totalCount / pageSize);
+        return (int) Math.ceil((double) totalRoomsCount / pageSize);
     }
     
     /**

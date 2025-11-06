@@ -31,9 +31,9 @@ public class CachedDiscussionRoom {
     
     private Long id;
     private String title;
-    private String region;           // Enum을 문자열로 저장 (결정사항 1-3)
-    private String accessLevel;      // Enum을 문자열로 저장
-    private String createdAt;        // ISO-8601 형식 (결정사항 1-4)
+    private Region region;           // Enum 타입으로 저장
+    private AccessLevel accessLevel; // Enum 타입으로 저장
+    private LocalDateTime createdAt; // LocalDateTime 타입으로 저장
     private Integer currentUsers;    // 현재 참여 인원 수 (결정사항 1-2)
     
     /**
@@ -47,9 +47,9 @@ public class CachedDiscussionRoom {
         return CachedDiscussionRoom.builder()
                 .id(domain.getId())
                 .title(domain.getTitle())
-                .region(domain.getRegion().name())
-                .accessLevel(domain.getAccessLevel().name())
-                .createdAt(domain.getCreatedAt().toString())  // ISO-8601
+                .region(domain.getRegion())
+                .accessLevel(domain.getAccessLevel())
+                .createdAt(domain.getCreatedAt())
                 .currentUsers(currentUsers)
                 .build();
     }
@@ -64,9 +64,10 @@ public class CachedDiscussionRoom {
                 this.id,
                 this.title,
                 null,  // description은 캐시에 없음
-                Region.valueOf(this.region),
-                AccessLevel.valueOf(this.accessLevel),
-                LocalDateTime.parse(this.createdAt),
+                this.region,
+                this.accessLevel,
+                this.currentUsers,
+                this.createdAt,
                 null,  // updatedAt은 캐시에 없음
                 null   // deletedAt은 캐시에 없음
         );
@@ -74,27 +75,29 @@ public class CachedDiscussionRoom {
     
     /**
      * Redis Hash에 저장하기 위한 Map 변환
+     * Enum과 LocalDateTime을 String으로 변환하여 저장
      * 
      * @return Hash 필드-값 맵
      */
-    public Map<String, String> toHashMap() {
+    public Map<String, String> convertToCacheData() {
         Map<String, String> map = new HashMap<>();
         map.put("id", String.valueOf(this.id));
         map.put("title", this.title);
-        map.put("region", this.region);
-        map.put("accessLevel", this.accessLevel);
-        map.put("createdAt", this.createdAt);
+        map.put("region", this.region.name());  // Enum → String
+        map.put("accessLevel", this.accessLevel.name());  // Enum → String
+        map.put("createdAt", this.createdAt.toString());  // LocalDateTime → String (ISO-8601)
         map.put("currentUsers", String.valueOf(this.currentUsers));
         return map;
     }
     
     /**
      * Redis Hash에서 가져온 Map을 DTO로 변환
+     * String을 Enum과 LocalDateTime으로 변환
      * 
      * @param map Redis Hash 데이터
      * @return 캐시용 DTO
      */
-    public static CachedDiscussionRoom fromHashMap(Map<Object, Object> map) {
+    public static CachedDiscussionRoom convertToJavaData(Map<Object, Object> map) {
         if (map == null || map.isEmpty()) {
             return null;
         }
@@ -102,9 +105,9 @@ public class CachedDiscussionRoom {
         return CachedDiscussionRoom.builder()
                 .id(Long.valueOf(map.get("id").toString()))
                 .title(map.get("title").toString())
-                .region(map.get("region").toString())
-                .accessLevel(map.get("accessLevel").toString())
-                .createdAt(map.get("createdAt").toString())
+                .region(Region.valueOf(map.get("region").toString()))  // String → Enum
+                .accessLevel(AccessLevel.valueOf(map.get("accessLevel").toString()))  // String → Enum
+                .createdAt(LocalDateTime.parse(map.get("createdAt").toString()))  // String → LocalDateTime
                 .currentUsers(Integer.valueOf(map.get("currentUsers").toString()))
                 .build();
     }

@@ -10,10 +10,10 @@ package org.example.gyeonggi_partners.domain.discussionRoom.infra.cache;
 public class RedisKeyGenerator {
     
     // Key 패턴 상수
-    private static final String ROOM_DETAIL = "room:%d";                    // room:{id}
-    private static final String ROOM_MEMBERS = "room:%d:members";           // room:{id}:members
-    private static final String LIST_LATEST = "list:latest";                // list:latest
-    private static final String USER_JOINED = "user:%d:joined";             // user:{id}:joined
+    private static final String ROOM_INFO_KEY = "room:%d";                    // room:{id}
+    private static final String ROOM_MEMBERS_KEY = "room:%d:members";           // room:{id}:members
+    private static final String RECENT_ROOMS_KEY = "list:latest";                // list:latest
+    private static final String USER_ROOMS_KEY = "user:%d:joined";             // user:{id}:joined
     
     /**
      * 논의방 상세 정보 Key 생성
@@ -21,8 +21,8 @@ public class RedisKeyGenerator {
      * @param roomId 논의방 ID
      * @return room:{roomId}
      */
-    public static String roomDetail(Long roomId) {
-        return String.format(ROOM_DETAIL, roomId);
+    public static String generateRoomInfoKey(Long roomId) {
+        return String.format(ROOM_INFO_KEY, roomId);
     }
     
     /**
@@ -31,8 +31,8 @@ public class RedisKeyGenerator {
      * @param roomId 논의방 ID
      * @return room:{roomId}:members
      */
-    public static String roomMembers(Long roomId) {
-        return String.format(ROOM_MEMBERS, roomId);
+    public static String generateRoomMembersKey(Long roomId) {
+        return String.format(ROOM_MEMBERS_KEY, roomId);
     }
     
     /**
@@ -40,8 +40,8 @@ public class RedisKeyGenerator {
      * 
      * @return list:latest
      */
-    public static String listLatest() {
-        return LIST_LATEST;
+    public static String generateRecentRoomsKey() {
+        return RECENT_ROOMS_KEY;
     }
     
     /**
@@ -50,7 +50,7 @@ public class RedisKeyGenerator {
      * @param userId 사용자 ID
      * @return user:{userId}:joined
      */
-    public static String userJoined(Long userId) {
-        return String.format(USER_JOINED, userId);
+    public static String generateUserRoomsKey(Long userId) {
+        return String.format(USER_ROOMS_KEY, userId);
     }
 }
