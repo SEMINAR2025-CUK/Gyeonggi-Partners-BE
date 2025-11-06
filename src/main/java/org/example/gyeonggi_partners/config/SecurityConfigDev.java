@@ -66,6 +66,9 @@ public class SecurityConfigDev {
                 
                 // 로그아웃은 인증 필요
                 .requestMatchers("/api/auth/logout").authenticated()
+
+                //논의방 관련은 인증필요
+                .requestMatchers("/api/discussion-rooms/**").authenticated()
                 
                 // Actuator 헬스 체크 경로 허용
                 .requestMatchers("/actuator/health/**").permitAll()

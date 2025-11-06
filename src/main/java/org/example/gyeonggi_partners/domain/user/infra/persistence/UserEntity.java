@@ -6,7 +6,11 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.gyeonggi_partners.domain.common.BaseEntity;
+import org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.MemberEntity;
 import org.example.gyeonggi_partners.domain.user.domain.model.User;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * User JPA 엔티티
@@ -43,6 +47,9 @@ public class UserEntity extends BaseEntity {
 
     @Column(name = "role", nullable = false, length = 20)
     private String role;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MemberEntity> members = new ArrayList<>();
 
     @Builder
     private UserEntity(Long id, String loginId, String loginPw, String name,
