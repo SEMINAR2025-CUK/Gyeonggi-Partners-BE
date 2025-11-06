@@ -26,6 +26,7 @@ public class DiscussionRoom {
     private String description;     // 논의방 설명
     private Region region;          // 지역 (Region ENUM)
     private AccessLevel accessLevel;     // 접근 권한 (AccessLevel ENUM)// 참여 인원 수
+    private Integer memberCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
@@ -33,6 +34,7 @@ public class DiscussionRoom {
     @Builder(access = lombok.AccessLevel.PRIVATE)
     private DiscussionRoom(Long id, String title, String description,
                            Region region, AccessLevel accessLevel,
+                           Integer memberCount,
                            LocalDateTime createdAt, LocalDateTime updatedAt,
                            LocalDateTime deletedAt) {
         this.id = id;
@@ -40,6 +42,7 @@ public class DiscussionRoom {
         this.description = description;
         this.region = region;
         this.accessLevel = accessLevel;
+        this.memberCount = memberCount;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.deletedAt = deletedAt;
@@ -60,6 +63,7 @@ public class DiscussionRoom {
                 .description(description)
                 .region(region)
                 .accessLevel(accessLevel)// 생성자가 첫 멤버
+                .memberCount(1)
                 .createdAt(LocalDateTime.now())
                 .build();
     }
@@ -69,6 +73,7 @@ public class DiscussionRoom {
      */
     public static DiscussionRoom restore(Long id, String title, String description,
                                          Region region, AccessLevel accessLevel,
+                                         Integer memberCount,
                                          LocalDateTime createdAt, LocalDateTime updatedAt,
                                          LocalDateTime deletedAt) {
         return DiscussionRoom.builder()
@@ -77,6 +82,7 @@ public class DiscussionRoom {
                 .description(description)
                 .region(region)
                 .accessLevel(accessLevel)
+                .memberCount(memberCount)
                 .createdAt(createdAt)
                 .updatedAt(updatedAt)
                 .deletedAt(deletedAt)

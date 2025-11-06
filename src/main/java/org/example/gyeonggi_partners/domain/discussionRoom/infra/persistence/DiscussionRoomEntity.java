@@ -41,17 +41,23 @@ public class DiscussionRoomEntity extends BaseEntity {
     @Column(name = "access_level", nullable = false)
     private AccessLevel accessLevel;
 
+    @Column(name = "member_count", nullable = false)
+    // DB에 DEFAULT 1이 설정되어 있지만, Entity에도 초기값 1을 명시하는 것이 안전합니다.
+    private Integer memberCount = 1;
+
     @OneToMany(mappedBy = "discussionRoom", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MemberEntity> members = new ArrayList<>();
 
     @Builder
     private DiscussionRoomEntity(Long id, String title, String description,
-                                 Region region, AccessLevel accessLevel) {
+                                 Region region, AccessLevel accessLevel,
+                                 Integer memberCount) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.region = region;
         this.accessLevel = accessLevel;
+        this.memberCount = memberCount;
     }
 
     /**
@@ -64,6 +70,7 @@ public class DiscussionRoomEntity extends BaseEntity {
                 .description(discussionRoom.getDescription())
                 .region(discussionRoom.getRegion())
                 .accessLevel(discussionRoom.getAccessLevel())
+                .memberCount(discussionRoom.getMemberCount())
                 .build();
     }
 
@@ -77,6 +84,7 @@ public class DiscussionRoomEntity extends BaseEntity {
                 this.description,
                 this.region,
                 this.accessLevel,
+                this.memberCount,
                 this.getCreatedAt(),
                 this.getUpdatedAt(),
                 this.getDeletedAt()

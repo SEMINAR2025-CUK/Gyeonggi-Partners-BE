@@ -66,6 +66,7 @@ CREATE TABLE discussion_rooms
     description     VARCHAR(255),
     region          region_enum NOT NULL,
     access_level    access_level_enum NOT NULL DEFAULT 'PUBLIC',
+    member_count    INTEGER NOT NULL DEFAULT 1,
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP WITH TIME ZONE,
     deleted_at      TIMESTAMP WITH TIME ZONE
