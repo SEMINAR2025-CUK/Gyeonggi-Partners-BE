@@ -114,4 +114,45 @@ public class DiscussionRoomService {
                 pagedRoomIds.getTotalRoomsCount()
         );
     }
+
+    /**
+     * 사용자가 참여한 논의방 목록 조회 (최신 참여순, 페이징)
+     * Cache-Aside 전략: Redis 먼저 조회 → 미스면 DB 조회
+     * 
+     * @param userId 사용자 ID
+     * @param page 페이지 번호 (1부터 시작)
+     * @param size 페이지 크기
+     * @return 논의방 목록 및 페이징 정보
+     */
+    @Transactional(readOnly = true)
+    public DiscussionRoomListRes retrieveMyJoinedRooms(Long userId, int page, int size) {
+        log.info("내가 참여한 논의방 목록 조회 - userId: {}, page: {}, size: {}", userId, page, size);
+        
+        // 1. Redis에서 사용자가 참여한 논의방 ID 목록 조회 (페이징)
+        DiscussionRoomsPage pagedRoomIds = cacheRepository.retrieveJoinedRoomsByPage(userId, page - 1, size);
+        
+        if (pagedRoomIds.getRoomIds().isEmpty()) {
+            log.debug("참여한 논의방 없음 - userId: {}", userId);
+            return DiscussionRoomListRes.of(List.of(), page, size, 0);
+        }
+        
+        // 2. Redis에서 각 논의방 상세 정보 조회
+        List<CachedDiscussionRoom> cachedRooms = cacheRepository.retrieveTotalCachingRoom(pagedRoomIds.getRoomIds());
+        
+        // 3. DTO 변환
+        List<DiscussionRoomInfo> roomSummaries = cachedRooms.stream()
+                .map(DiscussionRoomInfo::from)
+                .collect(Collectors.toList());
+        
+        log.info("내가 참여한 논의방 목록 조회 성공 - userId: {}, 조회된 방: {}개, 전체: {}개", 
+                userId, roomSummaries.size(), pagedRoomIds.getTotalRoomsCount());
+        
+        // 4. 페이징 정보와 함께 응답
+        return DiscussionRoomListRes.of(
+                roomSummaries,
+                page,
+                size,
+                pagedRoomIds.getTotalRoomsCount()
+        );
+    }
 }
