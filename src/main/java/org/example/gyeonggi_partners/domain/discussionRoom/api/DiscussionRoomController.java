@@ -78,4 +78,38 @@ public class DiscussionRoomController {
                 ApiResponse.success(response, "논의방 목록을 조회했습니다.")
         );
     }
+
+    /**
+     * 내가 참여한 논의방 목록 조회 (최신 참여순)
+     * 
+     * @param page 페이지 번호 (기본값: 1)
+     * @param size 페이지 크기 (기본값: 15)
+     * @param userDetails 현재 로그인한 사용자 정보 (Spring Security)
+     * @return 논의방 목록 및 페이징 정보
+     */
+    @Operation(
+            summary = "내가 참여한 논의방 목록 조회",
+            description = "현재 사용자가 참여한 논의방을 최신 참여순으로 조회합니다. 페이징을 지원합니다.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @GetMapping("/retrieveMyJoined")
+    public ResponseEntity<ApiResponse<DiscussionRoomListRes>> getMyJoinedRooms(
+            @Parameter(description = "페이지 번호 (1부터 시작)", example = "1")
+            @RequestParam(defaultValue = "1") int page,
+            
+            @Parameter(description = "페이지 크기", example = "15")
+            @RequestParam(defaultValue = "15") int size,
+            
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        DiscussionRoomListRes response = discussionRoomService.retrieveMyJoinedRooms(
+                userDetails.getUserId(), 
+                page, 
+                size
+        );
+        
+        return ResponseEntity.ok(
+                ApiResponse.success(response, "참여한 논의방 목록을 조회했습니다.")
+        );
+    }
 }
