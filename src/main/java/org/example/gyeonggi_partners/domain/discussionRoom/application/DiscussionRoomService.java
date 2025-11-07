@@ -5,14 +5,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.CreateDiscussionRoomReq;
 import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.CreateDiscussionRoomRes;
+import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.DiscussionRoomListRes;
+import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.DiscussionRoomInfo;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.DiscussionRoom;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.Member;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.repository.DiscussionRoomRepository;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.repository.MemberRepository;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.DiscussionRoomCacheRepository;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.CachedDiscussionRoom;
+import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomsPage;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -65,6 +71,47 @@ public class DiscussionRoomService {
             savedRoom.getDescription(),
             1, // 현재 인원 1명 (생성자)
             savedRoom.getAccessLevel()
+        );
+    }
+
+    /**
+     * 전체 논의방 목록 조회 (최신순, 페이징)
+     * Cache-Aside 전략: Redis 먼저 조회 → 미스면 DB 조회
+     * 
+     * @param page 페이지 번호 (1부터 시작)
+     * @param size 페이지 크기
+     * @return 논의방 목록 및 페이징 정보
+     */
+    @Transactional(readOnly = true)
+    public DiscussionRoomListRes retrieveTotalRooms(int page, int size) {
+        log.info("전체 논의방 목록 조회 - page: {}, size: {}", page, size);
+        
+        // 1. Redis에서 논의방 ID 목록 조회 (페이징)
+        // 페이지는 1부터 시작하므로 Redis 조회 시 0-based로 변환
+        DiscussionRoomsPage pagedRoomIds = cacheRepository.retrieveTotalRoomsByPage(page - 1, size);
+        
+        if (pagedRoomIds.getRoomIds().isEmpty()) {
+            log.debug("조회된 논의방 없음");
+            return DiscussionRoomListRes.of(List.of(), page, size, 0);
+        }
+        
+        // 2. Redis에서 각 논의방 상세 정보 조회
+        List<CachedDiscussionRoom> cachedRooms = cacheRepository.retrieveTotalCachingRoom(pagedRoomIds.getRoomIds());
+        
+        // 3. DTO 변환
+        List<DiscussionRoomInfo> roomSummaries = cachedRooms.stream()
+                .map(DiscussionRoomInfo::from)
+                .collect(Collectors.toList());
+        
+        log.info("전체 논의방 목록 조회 성공 - 조회된 방: {}개, 전체: {}개", 
+                roomSummaries.size(), pagedRoomIds.getTotalRoomsCount());
+        
+        // 4. 페이징 정보와 함께 응답
+        return DiscussionRoomListRes.of(
+                roomSummaries,
+                page,
+                size,
+                pagedRoomIds.getTotalRoomsCount()
         );
     }
 }
