@@ -1,4 +1,4 @@
-package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence;
+package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.member;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.Member;
+import org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.discussionRoom.DiscussionRoomEntity;
 import org.example.gyeonggi_partners.domain.user.infra.persistence.UserEntity;
 
 import java.time.LocalDateTime;

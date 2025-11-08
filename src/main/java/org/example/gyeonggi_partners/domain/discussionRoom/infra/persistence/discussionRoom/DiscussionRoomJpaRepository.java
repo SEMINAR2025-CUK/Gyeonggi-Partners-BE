@@ -1,4 +1,4 @@
-package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence;
+package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.discussionRoom;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

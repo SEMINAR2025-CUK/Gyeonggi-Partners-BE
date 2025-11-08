@@ -1,4 +1,4 @@
-package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence;
+package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.member;
 
 import lombok.RequiredArgsConstructor;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.Member;
