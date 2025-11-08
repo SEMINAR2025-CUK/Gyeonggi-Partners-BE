@@ -155,4 +155,29 @@ public class DiscussionRoomService {
                 pagedRoomIds.getTotalRoomsCount()
         );
     }
+
+    public void leaveRoom(Long userId, Long roomId) {
+        log.info("논의방 나가기 요청 - userId: {}, roomId: {}", userId, roomId);
+        
+        // 1. Redis 퇴장 처리
+        cacheRepository.removeUserFromRoom(userId, roomId);
+        
+        // 2. DB 멤버 삭제
+        memberRepository.deleteByUserIdAndRoomId(userId, roomId);
+        
+        // 3. 남은 인원 확인
+        int remainingUsers = memberRepository.countByRoomId(roomId);
+        log.debug("남은 인원 - roomId: {}, count: {}", roomId, remainingUsers);
+        
+        // 4. 마지막 사람이면 방 삭제
+        if (remainingUsers == 0) {
+            log.info("마지막 멤버 퇴장 - 방 삭제 처리 - roomId: {}", roomId);
+            discussionRoomRepository.softDelete(roomId);
+            
+            // creatorId는 알 수 없으므로 Redis만 부분 삭제
+            cacheRepository.evictRoomCache(roomId, null);
+        }
+        
+        log.info("논의방 나가기 성공 - userId: {}, roomId: {}", userId, roomId);
+    }
 }
