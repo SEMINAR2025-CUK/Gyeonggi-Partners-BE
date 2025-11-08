@@ -2,6 +2,8 @@ package org.example.gyeonggi_partners.domain.discussionRoom.domain.repository;
 
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.DiscussionRoom;
 
+import java.util.Optional;
+
 /**
  * DiscussionRoom 도메인 Repository 인터페이스
  * 도메인 계층에서 정의하고, 인프라 계층에서 구현
@@ -20,7 +22,7 @@ public interface DiscussionRoomRepository {
      * @param id 논의방 ID
      * @return 조회된 논의방 (응답 DTO 생성용)
      */
-    DiscussionRoom findById(Long id);
+    Optional<DiscussionRoom> findById(Long id);
 
     /**
      * 논의방 Soft Delete (deletedAt 업데이트)
