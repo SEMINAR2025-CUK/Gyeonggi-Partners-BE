@@ -38,7 +38,7 @@ public class DiscussionRoomService {
      * @param userId 생성자 ID (현재 로그인한 사용자)
      * @return 생성된 논의방 정보 (입장 완료 상태)
      */
-    public CreateDiscussionRoomRes createDiscussionRoom(CreateDiscussionRoomReq request, Long userId) {
+    public JoinRoomRes createRoom(CreateDiscussionRoomReq request, Long userId) {
         log.info("논의방 생성 요청 - userId: {}, title: {}", userId, request.getTitle());
         
         // 1. Domain 생성 (비즈니스 로직 & 유효성 검증)
@@ -128,7 +128,7 @@ public class DiscussionRoomService {
         }
         
         // 2. Redis에서 각 논의방 상세 정보 조회
-        List<CachedDiscussionRoom> cachedRooms = cacheRepository.retrieveTotalCachingRoom(pagedRoomIds.getRoomIds());
+        List<DiscussionRoomCacheModel> cachedRooms = cacheRepository.retrieveTotalCachingRoom(pagedRoomIds.getRoomIds());
         
         // 3. DTO 변환
         List<DiscussionRoomInfo> roomSummaries = cachedRooms.stream()
@@ -157,7 +157,7 @@ public class DiscussionRoomService {
      * @return 논의방 목록 및 페이징 정보
      */
     @Transactional(readOnly = true)
-    public DiscussionRoomListRes retrieveMyJoinedRooms(Long userId, int page, int size) {
+    public DiscussionRoomListRes retrieveJoinedRooms(Long userId, int page, int size) {
         log.info("내가 참여한 논의방 목록 조회 - userId: {}, page: {}, size: {}", userId, page, size);
         
         // 1. Redis에서 사용자가 참여한 논의방 ID 목록 조회 (페이징)
@@ -169,7 +169,7 @@ public class DiscussionRoomService {
         }
         
         // 2. Redis에서 각 논의방 상세 정보 조회
-        List<CachedDiscussionRoom> cachedRooms = cacheRepository.retrieveTotalCachingRoom(pagedRoomIds.getRoomIds());
+        List<DiscussionRoomCacheModel> cachedRooms = cacheRepository.retrieveTotalCachingRoom(pagedRoomIds.getRoomIds());
         
         // 3. DTO 변환
         List<DiscussionRoomInfo> roomSummaries = cachedRooms.stream()

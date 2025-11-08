@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.gyeonggi_partners.common.dto.ApiResponse;
 import org.example.gyeonggi_partners.common.jwt.CustomUserDetails;
 import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.*;
+import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.DiscussionRoomListRes;
 import org.example.gyeonggi_partners.domain.discussionRoom.application.DiscussionRoomService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -100,7 +101,7 @@ public class DiscussionRoomController {
             
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        DiscussionRoomListRes response = discussionRoomService.retrieveMyJoinedRooms(
+        DiscussionRoomListRes response = discussionRoomService.retrieveJoinedRooms(
                 userDetails.getUserId(), 
                 page, 
                 size
