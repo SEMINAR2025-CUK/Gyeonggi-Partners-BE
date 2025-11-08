@@ -28,4 +28,9 @@ public class DiscussionRoomRepositoryImpl implements DiscussionRoomRepository {
                 .map(DiscussionRoomEntity::toDomain)
                 .orElseThrow(() -> new IllegalArgumentException("논의방을 찾을 수 없습니다. ID: " + id));
     }
+
+    @Override
+    public void softDelete(Long roomId) {
+        discussionRoomJpaRepository.softDelete(roomId);
+    }
 }

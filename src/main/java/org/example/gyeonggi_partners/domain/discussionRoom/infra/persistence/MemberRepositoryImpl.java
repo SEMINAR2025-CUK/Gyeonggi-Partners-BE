@@ -26,4 +26,14 @@ public class MemberRepositoryImpl implements MemberRepository {
     public boolean existsByUserIdAndRoomId(Long userId, Long roomId) {
         return memberJpaRepository.existsByUserIdAndRoomId(userId, roomId);
     }
+
+    @Override
+    public void deleteByUserIdAndRoomId(Long userId, Long roomId) {
+        memberJpaRepository.deleteByUserIdAndRoomId(userId, roomId);
+    }
+
+    @Override
+    public int countByRoomId(Long roomId) {
+        return memberJpaRepository.countByRoomId(roomId);
+    }
 }

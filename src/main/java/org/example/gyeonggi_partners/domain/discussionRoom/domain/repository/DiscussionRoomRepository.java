@@ -21,4 +21,11 @@ public interface DiscussionRoomRepository {
      * @return 조회된 논의방 (응답 DTO 생성용)
      */
     DiscussionRoom findById(Long id);
+
+    /**
+     * 논의방 Soft Delete (deletedAt 업데이트)
+     * 범죄 수사 등을 위해 실제 데이터는 보존
+     * @param roomId 논의방 ID
+     */
+    void softDelete(Long roomId);
 }
