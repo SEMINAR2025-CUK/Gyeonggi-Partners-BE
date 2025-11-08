@@ -3,6 +3,8 @@ package org.example.gyeonggi_partners.domain.discussionRoom.infra.cache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.DiscussionRoom;
+import org.example.gyeonggi_partners.domain.discussionRoom.domain.repository.DiscussionRoomRepository;
+import org.example.gyeonggi_partners.domain.discussionRoom.domain.repository.MemberRepository;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomCacheModel;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomsPage;
 import org.springframework.data.redis.core.RedisOperations;
@@ -31,6 +33,8 @@ import java.util.stream.Collectors;
 public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRepository {
     
     private final RedisTemplate<String, Object> redisTemplate;
+    private final DiscussionRoomRepository discussionRoomRepository;
+    private final MemberRepository memberRepository;
     
     // TTL 상수 (결정사항 8)
     private static final Duration TTL_ROOM_INFO = Duration.ofHours(24);      // 24시간
@@ -278,7 +282,7 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
     
     // ==================== 헬퍼 메서드 ====================
     
-    // 단일 논의방 조회
+    // 단일 논의방 조회 (캐시 미스 시 DB 조회 후 캐싱)
     @Override
     public Optional<DiscussionRoomCacheModel> retrieveCachingRoom(Long roomId) {
         try {
@@ -286,8 +290,30 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
             Map<Object, Object> entries = redisTemplate.opsForHash().entries(roomKey);
             
             if (entries.isEmpty()) {
-                log.debug("캐시 미스 - room:{}", roomId);
-                return Optional.empty();
+                log.debug("캐시 미스 - DB 조회 시작 - room:{}", roomId);
+                
+                // DB에서 조회
+                Optional<DiscussionRoom> roomOpt = discussionRoomRepository.findById(roomId);
+                if (roomOpt.isEmpty()) {
+                    log.debug("DB에도 존재하지 않음 - room:{}", roomId);
+                    return Optional.empty();
+                }
+                
+                // 현재 멤버 수 조회
+                int currentUsers = memberRepository.countByRoomId(roomId);
+                
+                // 캐시 모델 생성
+                DiscussionRoomCacheModel model = DiscussionRoomCacheModel.fromDomainModel(
+                    roomOpt.get(), 
+                    currentUsers
+                );
+                
+                // Redis에 캐싱 (room:{id} Hash만 저장)
+                redisTemplate.opsForHash().putAll(roomKey, model.toRedisHash());
+                redisTemplate.expire(roomKey, TTL_ROOM_INFO);
+                
+                log.debug("DB 조회 및 캐싱 완료 - room:{}, currentUsers:{}", roomId, currentUsers);
+                return Optional.of(model);
             }
             
             DiscussionRoomCacheModel cached = DiscussionRoomCacheModel.fromRedisHash(entries);

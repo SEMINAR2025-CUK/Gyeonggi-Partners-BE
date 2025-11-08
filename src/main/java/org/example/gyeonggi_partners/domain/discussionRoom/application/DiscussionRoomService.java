@@ -81,12 +81,9 @@ public class DiscussionRoomService {
             throw new BusinessException(DiscussionRoomErrorCode.ALREADY_JOINED_ROOM);
         }
 
-        // 2. 방 정보를 캐시에서 조회, 캐시 미스 시 DB 조회하도록 수정. DB에도 없을 경우 에러 처리
-        CachedDiscussionRoom cachedRoom = cacheRepository.retrieveCachingRoom(roomId)
-                .orElseThrow(
-                        () -> new BusinessException(DiscussionRoomErrorCode.ROOM_NOT_FOUND)
-                );
-
+        // 2. 방 정보 조회 (캐시 미스 시 DB 조회 후 캐싱)
+        DiscussionRoomCacheModel cachedRoom = cacheRepository.retrieveCachingRoom(roomId)
+                .orElseThrow(() -> new BusinessException(DiscussionRoomErrorCode.ROOM_NOT_FOUND));
 
         // 3. DB에 멤버 추가
         Member member = Member.join(userId, roomId);

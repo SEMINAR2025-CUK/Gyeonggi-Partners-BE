@@ -104,6 +104,7 @@ public interface DiscussionRoomCacheRepository {
     
     /**
      * 논의방 정보 조회 (room:{id})
+     * 캐시 미스 시 DB에서 조회하여 캐싱 후 반환
      * 
      * @param roomId 논의방 ID
      * @return 캐시된 논의방 정보 (없으면 Empty)
