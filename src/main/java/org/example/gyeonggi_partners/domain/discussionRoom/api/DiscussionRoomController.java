@@ -112,4 +112,23 @@ public class DiscussionRoomController {
                 ApiResponse.success(response, "참여한 논의방 목록을 조회했습니다.")
         );
     }
+
+    @Operation(
+            summary = "논의방 나가기",
+            description = "논의방에서 나갑니다. 마지막 멤버가 나가면 방이 삭제됩니다(Soft Delete).",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @DeleteMapping("/{roomId}/leave")
+    public ResponseEntity<ApiResponse<Void>> leaveRoom(
+            @Parameter(description = "논의방 ID", example = "1")
+            @PathVariable Long roomId,
+            
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        discussionRoomService.leaveRoom(userDetails.getUserId(), roomId);
+        
+        return ResponseEntity.ok(
+                ApiResponse.success(null, "논의방 나가기에 성공하였습니다.")
+        );
+    }
 }
