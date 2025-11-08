@@ -3,14 +3,13 @@ package org.example.gyeonggi_partners.domain.discussionRoom.application;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.CreateDiscussionRoomReq;
-import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.CreateDiscussionRoomRes;
-import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.DiscussionRoomListRes;
-import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.DiscussionRoomInfo;
+import org.example.gyeonggi_partners.common.exception.BusinessException;
+import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.*;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.DiscussionRoom;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.Member;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.repository.DiscussionRoomRepository;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.repository.MemberRepository;
+import org.example.gyeonggi_partners.domain.discussionRoom.exception.DiscussionRoomErrorCode;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.DiscussionRoomCacheRepository;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.CachedDiscussionRoom;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomsPage;
@@ -73,6 +72,42 @@ public class DiscussionRoomService {
             savedRoom.getAccessLevel()
         );
     }
+
+    public JoinRoomRes joinRoom(Long userId, Long roomId) {
+        log.info("논의방 입장 요청 - userId: {}, roomId: {}", userId, roomId);
+
+        // 1. 중복 참여 확인
+        if (memberRepository.existsByUserIdAndRoomId(userId, roomId)) {
+            throw new BusinessException(DiscussionRoomErrorCode.ALREADY_JOINED_ROOM);
+        }
+
+        // 2. 방 정보를 캐시에서 조회, 캐시 미스 시 DB 조회하도록 수정. DB에도 없을 경우 에러 처리
+        CachedDiscussionRoom cachedRoom = cacheRepository.retrieveCachingRoom(roomId)
+                .orElseThrow(
+                        () -> new BusinessException(DiscussionRoomErrorCode.ROOM_NOT_FOUND)
+                );
+
+
+        // 3. DB에 멤버 추가
+        Member member = Member.join(userId, roomId);
+        memberRepository.save(member);
+        log.debug("멤버 추가 완료 - userId: {}, roomId: {}", userId, roomId);
+
+        // 4. Redis 업데이트
+        cacheRepository.addUserToRoom(userId, roomId, System.currentTimeMillis());
+        log.debug("Redis 업데이트 완료 - roomId: {}", roomId);
+
+        // 5. 멤버 목록 조회
+        List<Long> memberIds = cacheRepository.retrieveRoomMembers(roomId);
+
+        log.info("논의방 입장 성공 - userId: {}, roomId: {}", userId, roomId);
+        return JoinRoomRes.of(cachedRoom, memberIds);
+    }
+
+
+
+
+
 
     /**
      * 전체 논의방 목록 조회 (최신순, 페이징)
