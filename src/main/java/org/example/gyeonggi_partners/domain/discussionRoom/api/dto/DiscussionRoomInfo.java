@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.AccessLevel;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.Region;
-import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.CachedDiscussionRoom;
+import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomCacheModel;
 
 import java.time.LocalDateTime;
 
@@ -42,7 +42,7 @@ public class DiscussionRoomInfo {
      * @param cached 캐시된 논의방 정보
      * @return 논의방 요약 정보 응답 DTO
      */
-    public static DiscussionRoomInfo from(CachedDiscussionRoom cached) {
+    public static DiscussionRoomInfo from(DiscussionRoomCacheModel cached) {
         return DiscussionRoomInfo.builder()
                 .roomId(cached.getId())
                 .title(cached.getTitle())// 캐시에는 description이 없음

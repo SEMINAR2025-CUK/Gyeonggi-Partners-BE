@@ -1,7 +1,7 @@
 package org.example.gyeonggi_partners.domain.discussionRoom.infra.cache;
 
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.DiscussionRoom;
-import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.CachedDiscussionRoom;
+import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomCacheModel;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomsPage;
 
 import java.util.List;
@@ -38,7 +38,7 @@ public interface DiscussionRoomCacheRepository {
      * @param creatorId 생성자(방장) ID
      * @param timestamp 생성 시각 (밀리초 단위)
      */
-    void saveNewRoomToRedis(CachedDiscussionRoom cachedRoom, Long creatorId, long timestamp);
+    void saveNewRoomToRedis(DiscussionRoomCacheModel cachedRoom, Long creatorId, long timestamp);
     
     /**
      * 전체 논의방 최신순 목록 조회 (페이징)
@@ -108,7 +108,7 @@ public interface DiscussionRoomCacheRepository {
      * @param roomId 논의방 ID
      * @return 캐시된 논의방 정보 (없으면 Empty)
      */
-    Optional<CachedDiscussionRoom> retrieveCachingRoom(Long roomId);
+    Optional<DiscussionRoomCacheModel> retrieveCachingRoom(Long roomId);
     
     /**
      * 여러 논의방 정보 일괄 조회 (전체조회시 사용)
@@ -116,7 +116,7 @@ public interface DiscussionRoomCacheRepository {
      * @param roomIds 논의방 ID 목록
      * @return 캐시된 논의방 목록 (캐시 미스는 제외)
      */
-    List<CachedDiscussionRoom> retrieveTotalCachingRoom(List<Long> roomIds);
+    List<DiscussionRoomCacheModel> retrieveTotalCachingRoom(List<Long> roomIds);
     
     /**
      * 사용자가 논의방에서 퇴장 (원자적 처리)

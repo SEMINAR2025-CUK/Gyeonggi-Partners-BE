@@ -27,7 +27,7 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CachedDiscussionRoom {
+public class DiscussionRoomCacheModel {
     
     private Long id;
     private String title;
@@ -44,8 +44,8 @@ public class CachedDiscussionRoom {
      * @param currentUsers 현재 참여 인원 수 (DB에서 COUNT한 값)
      * @return 캐시용 DTO
      */
-    public static CachedDiscussionRoom fromDomain(DiscussionRoom domain, int currentUsers) {
-        return CachedDiscussionRoom.builder()
+    public static DiscussionRoomCacheModel fromDomainModel(DiscussionRoom domain, int currentUsers) {
+        return DiscussionRoomCacheModel.builder()
                 .id(domain.getId())
                 .title(domain.getTitle())
                 .description(domain.getDescription())
@@ -61,7 +61,7 @@ public class CachedDiscussionRoom {
      * 
      * @return 논의방 도메인 모델
      */
-    public DiscussionRoom toDomain() {
+    public DiscussionRoom ToDomainModel() {
         return DiscussionRoom.restore(
                 this.id,
                 this.title,
@@ -81,7 +81,7 @@ public class CachedDiscussionRoom {
      * 
      * @return Hash 필드-값 맵
      */
-    public Map<String, String> convertToCacheData() {
+    public Map<String, String> toRedisHash() {
         Map<String, String> map = new HashMap<>();
         map.put("id", String.valueOf(this.id));
         map.put("title", this.title);
@@ -100,12 +100,12 @@ public class CachedDiscussionRoom {
      * @param map Redis Hash 데이터
      * @return 캐시용 DTO
      */
-    public static CachedDiscussionRoom convertToJavaData(Map<Object, Object> map) {
+    public static DiscussionRoomCacheModel fromRedisHash(Map<Object, Object> map) {
         if (map == null || map.isEmpty()) {
             return null;
         }
         
-        return CachedDiscussionRoom.builder()
+        return DiscussionRoomCacheModel.builder()
                 .id(Long.valueOf(map.get("id").toString()))
                 .title(map.get("title").toString())
                 .description(map.get("description").toString())

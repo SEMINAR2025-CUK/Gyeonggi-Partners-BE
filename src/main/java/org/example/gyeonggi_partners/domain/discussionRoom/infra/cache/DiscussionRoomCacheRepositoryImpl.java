@@ -3,7 +3,7 @@ package org.example.gyeonggi_partners.domain.discussionRoom.infra.cache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.DiscussionRoom;
-import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.CachedDiscussionRoom;
+import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomCacheModel;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomsPage;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -46,7 +46,7 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
     
     // 논의방 생성
     @Override
-    public void saveNewRoomToRedis(CachedDiscussionRoom cachedRoom, Long creatorId, long timestamp) {
+    public void saveNewRoomToRedis(DiscussionRoomCacheModel cachedRoom, Long creatorId, long timestamp) {
         try {
             //캐시 키 생성
             String roomInfoKey = RedisKeyGenerator.generateRoomInfoKey(cachedRoom.getId());
@@ -62,7 +62,7 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
                     operations.multi();
                     
                     // 1. room:{id} Hash 저장
-                    operations.opsForHash().putAll(roomInfoKey, cachedRoom.convertToCacheData());
+                    operations.opsForHash().putAll(roomInfoKey, cachedRoom.toRedisHash());
                     operations.expire(roomInfoKey, TTL_ROOM_INFO);
                     
                     // 2. list:latest ZSet 업데이트 (결정사항 2-2: 최신순)
@@ -280,7 +280,7 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
     
     // 단일 논의방 조회
     @Override
-    public Optional<CachedDiscussionRoom> retrieveCachingRoom(Long roomId) {
+    public Optional<DiscussionRoomCacheModel> retrieveCachingRoom(Long roomId) {
         try {
             String roomKey = RedisKeyGenerator.generateRoomInfoKey(roomId);
             Map<Object, Object> entries = redisTemplate.opsForHash().entries(roomKey);
@@ -290,7 +290,7 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
                 return Optional.empty();
             }
             
-            CachedDiscussionRoom cached = CachedDiscussionRoom.convertToJavaData(entries);
+            DiscussionRoomCacheModel cached = DiscussionRoomCacheModel.fromRedisHash(entries);
             log.debug("캐시 히트 - room:{}", roomId);
             return Optional.ofNullable(cached);
             
@@ -302,12 +302,12 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
     
     // 여러 논의방 일괄 조회
     @Override
-    public List<CachedDiscussionRoom> retrieveTotalCachingRoom(List<Long> roomIds) {
+    public List<DiscussionRoomCacheModel> retrieveTotalCachingRoom(List<Long> roomIds) {
         if (roomIds == null || roomIds.isEmpty()) {
             return Collections.emptyList();
         }
         
-        List<CachedDiscussionRoom> result = new ArrayList<>();
+        List<DiscussionRoomCacheModel> result = new ArrayList<>();
         
         for (Long roomId : roomIds) {
             retrieveCachingRoom(roomId).ifPresent(result::add);
@@ -461,10 +461,10 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
                 DiscussionRoom room = rooms.get(i);
                 int currentUsers = currentUsersCounts.get(i);
                 
-                CachedDiscussionRoom cached = CachedDiscussionRoom.fromDomain(room, currentUsers);
+                DiscussionRoomCacheModel cached = DiscussionRoomCacheModel.fromDomainModel(room, currentUsers);
                 String roomKey = RedisKeyGenerator.generateRoomInfoKey(room.getId());
                 
-                redisTemplate.opsForHash().putAll(roomKey, cached.convertToCacheData());
+                redisTemplate.opsForHash().putAll(roomKey, cached.toRedisHash());
                 redisTemplate.expire(roomKey, TTL_ROOM_INFO);
                 
                 cachedCount++;
