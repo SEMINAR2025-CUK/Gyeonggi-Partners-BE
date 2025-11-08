@@ -25,7 +25,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
         // 어플리케이션 목적지 접두사 설정
         // 클라이언트가 /chat으로 메세지를 보내면 @MessageMapping 어노테이션이 붙은 컨트롤러 메서드가 이를 담당하여 처리
-        registry.setApplicationDestinationPrefixes("/chat");
+        registry.setApplicationDestinationPrefixes("/app");
 
         // 메세지 브로커가 처리할 목적집 접두사 설정
         // /topic으로 시작하는 목적지를 구독하는 클라이언트에게 메세지 브로드캐스팅

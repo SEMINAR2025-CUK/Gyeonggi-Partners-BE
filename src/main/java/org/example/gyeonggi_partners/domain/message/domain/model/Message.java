@@ -1,33 +1,26 @@
-package org.example.gyeonggi_partners.domain.message.infra;
+package org.example.gyeonggi_partners.domain.message.domain.model;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.gyeonggi_partners.domain.common.BaseEntity;
+import lombok.RequiredArgsConstructor;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.DiscussionRoomEntity;
 import org.example.gyeonggi_partners.domain.user.infra.persistence.UserEntity;
 
-@Entity
 @Getter
-@Table(name = "messages")
+@RequiredArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class MessageEntity extends BaseEntity {
+public class Message{
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="user_id", nullable=false)
     private UserEntity user;
 
+    // 논의방 추가시 주석해제 예정
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="room_id", nullable=false)
-    private DiscussionRoomEntity discussionRoom;
+    private DiscussionRoomEntity room;
 
-
-    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
 

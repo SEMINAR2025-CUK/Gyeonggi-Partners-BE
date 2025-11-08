@@ -1,10 +1,7 @@
 package org.example.gyeonggi_partners.domain.message.application;
 
 import lombok.RequiredArgsConstructor;
-import org.example.gyeonggi_partners.common.exception.BusinessException;
-import org.example.gyeonggi_partners.domain.message.api.MessageType;
 import org.example.gyeonggi_partners.domain.message.api.dto.MessageRequest;
-import org.example.gyeonggi_partners.domain.message.infra.MessageEntity;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.stereotype.Service;
@@ -13,7 +10,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class RedisPublisher {
 
-    // 여기서 MessageController가 아니라 메세지를 브로드캐스팅함.
+    // MessageController로부터 request를 받아 설정된 redis 채널로 발행
     private final RedisTemplate<String, Object> redisTemplate;
     private final ChannelTopic topic;
 

@@ -6,6 +6,5 @@ import java.util.List;
 
 public interface MessageJpaRepository extends JpaRepository<MessageEntity, Long> {
 
-    //List<MessageEntity> findByRoomIdOrderByCreatedAtDesc(Long RoomId);
-
+    List<MessageEntity> findByDiscussionRoom_IdOrderByCreatedAtDescIdOrderByCreatedAtDesc(Long roomId);
 }
