@@ -29,7 +29,7 @@ public class DiscussionRoomController {
      * 
      * @param request 논의방 생성 요청 데이터
      * @param userDetails 현재 로그인한 사용자 정보 (Spring Security)
-     * @return 생성된 논의방 정보
+     * @return 생성된 논의방 정보 (입장 완료 상태)
      */
     @Operation(
             summary = "논의방 생성", 
@@ -37,11 +37,11 @@ public class DiscussionRoomController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @PostMapping("/create")
-    public ResponseEntity<ApiResponse<CreateDiscussionRoomRes>> createRoom(
+    public ResponseEntity<ApiResponse<JoinRoomRes>> createRoom(
             @Valid @RequestBody CreateDiscussionRoomReq request,
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        CreateDiscussionRoomRes response = discussionRoomService.createDiscussionRoom(
+        JoinRoomRes response = discussionRoomService.createRoom(
                 request, 
                 userDetails.getUserId()
         );

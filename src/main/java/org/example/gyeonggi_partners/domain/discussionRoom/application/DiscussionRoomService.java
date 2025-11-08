@@ -5,13 +5,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.gyeonggi_partners.common.exception.BusinessException;
 import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.*;
+import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.DiscussionRoomListRes;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.DiscussionRoom;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.Member;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.repository.DiscussionRoomRepository;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.repository.MemberRepository;
 import org.example.gyeonggi_partners.domain.discussionRoom.exception.DiscussionRoomErrorCode;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.DiscussionRoomCacheRepository;
-import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.CachedDiscussionRoom;
+import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomCacheModel;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomsPage;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,7 +36,7 @@ public class DiscussionRoomService {
      * 
      * @param request 논의방 생성 요청
      * @param userId 생성자 ID (현재 로그인한 사용자)
-     * @return 생성된 논의방 정보
+     * @return 생성된 논의방 정보 (입장 완료 상태)
      */
     public CreateDiscussionRoomRes createDiscussionRoom(CreateDiscussionRoomReq request, Long userId) {
         log.info("논의방 생성 요청 - userId: {}, title: {}", userId, request.getTitle());
@@ -58,19 +59,18 @@ public class DiscussionRoomService {
         log.debug("생성자 멤버 추가 완료 - userId: {}, roomId: {}", userId, savedRoom.getId());
         
         // 4. Redis 캐싱 (Write-Through 전략)
-        CachedDiscussionRoom cached = CachedDiscussionRoom.fromDomain(savedRoom, 1); // 현재 인원 1명
-        cacheRepository.saveNewRoomToRedis(cached, userId, System.currentTimeMillis());
+        DiscussionRoomCacheModel model = DiscussionRoomCacheModel.fromDomainModel(savedRoom, 1);
+        cacheRepository.saveNewRoomToRedis(model, userId, System.currentTimeMillis());
+
         log.debug("Redis 캐싱 완료 - roomId: {}", savedRoom.getId());
         
-        // 5. Response 반환
+        // 5. 멤버 목록 조회 (현재는 생성자만 존재)
+        List<Long> memberIds = List.of(userId);
+        
+        // 6. JoinRoomRes 반환 (생성 = 입장 완료)
         log.info("논의방 생성 성공 - roomId: {}", savedRoom.getId());
-        return new CreateDiscussionRoomRes(
-            savedRoom.getId(),
-            savedRoom.getTitle(),
-            savedRoom.getDescription(),
-            1, // 현재 인원 1명 (생성자)
-            savedRoom.getAccessLevel()
-        );
+
+        return JoinRoomRes.of(model, memberIds);
     }
 
     public JoinRoomRes joinRoom(Long userId, Long roomId) {
