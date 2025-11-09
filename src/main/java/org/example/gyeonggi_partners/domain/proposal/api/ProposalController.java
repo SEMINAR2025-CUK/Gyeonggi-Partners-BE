@@ -25,13 +25,12 @@ public class ProposalController {
 
     private final ProposalService proposalService;
 
-    @Operation(summary = "제안서 생성", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "제안서 생성")
     @PostMapping
     public ResponseEntity<ApiResponse<ProposalResponse>> createProposal(
-            @Valid @RequestBody CreateProposalRequest request,
-            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @Valid @RequestBody CreateProposalRequest request) {
 
-        ProposalResponse response = proposalService.createProposal(request, userDetails.getUserId());
+        ProposalResponse response = proposalService.createProposal(request);
 
         return ResponseEntity.ok(ApiResponse.success(response, "제안서 생성 성공"));
     }
@@ -52,9 +51,7 @@ public class ProposalController {
     @PutMapping("/{proposalId}")
     public ResponseEntity<ApiResponse<ProposalResponse>> updateProposal(
             @PathVariable Long proposalId,
-            @Valid @RequestBody UpdateProposalRequest request,
-            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
-    ) {
+            @Valid @RequestBody UpdateProposalRequest request) {
 
         ProposalResponse response = proposalService.updateProposal(proposalId, request);
 

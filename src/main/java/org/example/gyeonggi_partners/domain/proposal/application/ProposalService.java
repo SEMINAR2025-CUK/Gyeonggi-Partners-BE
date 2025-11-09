@@ -29,7 +29,7 @@ public class ProposalService {
     /**
      * 제안서 작성
      */
-    public ProposalResponse createProposal(CreateProposalRequest request, Long userId) {
+    public ProposalResponse createProposal(CreateProposalRequest request) {
 
         ContentFormat contents = ContentFormat.of(
                 request.getParagraph(),
@@ -38,7 +38,7 @@ public class ProposalService {
                 request.getExpectedEffect()
         );
 
-        Proposal proposal = Proposal.create(request.getTitle(), contents);
+        Proposal proposal = Proposal.create(request.getRoomId(), request.getTitle(), contents);
 
         Proposal saved = proposalRepository.save(proposal);
 

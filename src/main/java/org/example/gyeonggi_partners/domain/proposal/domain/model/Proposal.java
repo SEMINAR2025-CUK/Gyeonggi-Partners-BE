@@ -25,7 +25,6 @@ public class Proposal {
     // Id - 제안서, 논의방, 작성자
     private Long id;
     private Long roomId;
-    private Long authorId;
 
     // 제안서 - 제목, 내용
     private String title;
@@ -42,13 +41,12 @@ public class Proposal {
     private LocalDateTime deletedAt;
 
 
-    public static Proposal create(Long roomId, Long authorId, String title, ContentFormat contents) {
+    public static Proposal create(Long roomId,String title, ContentFormat contents) {
 
         validateTitle(title);
 
         return  Proposal.builder()
                 .roomId(roomId)
-                .authorId(authorId)
                 .title(title)
                 .contents(contents)
                 .status(SubmitStatus.UNSUBMITTABLE)
@@ -126,7 +124,6 @@ public class Proposal {
         return Proposal.builder()
                 .id(id)
                 .roomId(roomId)
-                .authorId(authorId)
                 .title(title)
                 .contents(contents)
                 .consents(consents)
