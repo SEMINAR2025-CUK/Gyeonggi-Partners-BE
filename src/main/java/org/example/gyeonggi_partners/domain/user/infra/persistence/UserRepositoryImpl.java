@@ -3,8 +3,11 @@ package org.example.gyeonggi_partners.domain.user.infra.persistence;
 import lombok.RequiredArgsConstructor;
 import org.example.gyeonggi_partners.domain.user.domain.model.User;
 import org.example.gyeonggi_partners.domain.user.domain.repository.UserRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -54,6 +57,12 @@ public class UserRepositoryImpl implements UserRepository {
     public Optional<User> findById(Long id) {
         return userJpaRepository.findById(id)
                 .map(UserEntity::toDomain);
+    }
+
+
+    @Override
+    public List<String> findNicknamesByIds(List<Long> ids) { // 구현 추가
+        return userJpaRepository.findNicknameByIdIn(ids);
     }
 
 
