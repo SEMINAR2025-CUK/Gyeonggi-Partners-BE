@@ -33,7 +33,6 @@ public class ProposalEntity extends BaseEntity {
     @JoinColumn(name = "user_id")
     private UserEntity author;
 
-    // 제안서 - 제목, 내용
     private String title;
 
     @Enumerated(EnumType.STRING)

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -41,18 +42,19 @@ public class Proposal {
     private LocalDateTime deletedAt;
 
 
-    public static Proposal create(String title, ContentFormat contents) {
+    public static Proposal create(Long roomId, Long authorId, String title, ContentFormat contents) {
 
         validateTitle(title);
 
-        Proposal proposal = Proposal.builder()
+        return  Proposal.builder()
+                .roomId(roomId)
+                .authorId(authorId)
                 .title(title)
                 .contents(contents)
                 .status(SubmitStatus.UNSUBMITTABLE)
+                .consents(new ArrayList<>())
                 .createdAt(LocalDateTime.now())
                 .build();
-
-        return proposal;
     }
 
 
@@ -65,6 +67,7 @@ public class Proposal {
     }
 
 
+
     // 제출 시작
     public void startSubmission() {
         if (status == SubmitStatus.SUBMITTABLE) {
@@ -73,6 +76,27 @@ public class Proposal {
 
         this.status = SubmitStatus.VOTING;
         this.deadline = LocalDateTime.now().plusDays(SUBMISSION_DURATION_DAYS);
+    }
+
+    // 동의 하기
+    public void addConsent(Consenter consenter) {
+        if (this.consents == null) {
+            this.consents = new ArrayList<>();
+        }
+
+        boolean alreadyConsented = this.consents.stream()
+                .anyMatch(u -> u.getId().equals(consenter.getId()));
+
+        if(alreadyConsented) {
+            throw new IllegalArgumentException("이미 동의한 제안서입니다");
+        }
+
+        if (this.status != SubmitStatus.VOTING) {
+            throw new IllegalArgumentException("투표 중인 제안서가 아닙니다");
+        }
+
+        this.consents.add(consenter);
+
     }
 
 
