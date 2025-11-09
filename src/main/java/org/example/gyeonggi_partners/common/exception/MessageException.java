@@ -6,8 +6,8 @@ public class MessageException extends RuntimeException {
 
     @Getter
     private final ErrorCode errorCode;
-    public MessageException(String message, ErrorCode errorCode) {
-        super(message);
+    public MessageException(ErrorCode errorCode) {
+        super(errorCode.getMessage());
         this.errorCode = errorCode;
     }
 }

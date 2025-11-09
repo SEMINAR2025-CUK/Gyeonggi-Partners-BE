@@ -27,7 +27,7 @@ public class RedisSubscriber {
             messagingTemplate.convertAndSend("/topic/room/"+message.getRoomId(),message);
 
         } catch (JsonMappingException e) { //json 형식이 지켜지지 않았을 때
-            log.error("!!!메세지 역직렬화 실패!!!: {}", publishMessage,e);
+            log.error("!!!json 파싱 오류!!! message: {}, error: {}", publishMessage,e.getMessage());
 
         } catch (Exception e) {
             log.error("!!!메세지 처리 중 알 수 없는 오류 발생!!!",e);

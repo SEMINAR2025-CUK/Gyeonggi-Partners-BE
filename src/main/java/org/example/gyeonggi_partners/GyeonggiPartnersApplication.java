@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @SpringBootApplication
 @EnableConfigurationProperties(JwtProperties.class)
-@EnableJpaAuditing
 public class GyeonggiPartnersApplication {
 
     public static void main(String[] args) {

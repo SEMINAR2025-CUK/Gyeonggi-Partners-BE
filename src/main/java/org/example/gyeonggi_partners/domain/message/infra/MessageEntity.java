@@ -1,17 +1,17 @@
 package org.example.gyeonggi_partners.domain.message.infra;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.example.gyeonggi_partners.domain.common.BaseEntity;
-import org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.DiscussionRoomEntity;
+import org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.discussionRoom.DiscussionRoomEntity;
 import org.example.gyeonggi_partners.domain.user.infra.persistence.UserEntity;
 
 @Entity
 @Getter
 @Table(name = "messages")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder
 public class MessageEntity extends BaseEntity {
 
     @Id
@@ -29,7 +29,5 @@ public class MessageEntity extends BaseEntity {
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
-
-
 
 }
