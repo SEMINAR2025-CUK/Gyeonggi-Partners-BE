@@ -17,7 +17,10 @@ public enum ProposalErrorCode implements ErrorCode {
 
     // 유효하지 않은 client 요청
     INVALID_TITLE_LENGTH(400, "P006", "제목의 길이가 올바르지 않습니다."),
-    EMPTY_PROPOSAL_BODY(400, "P007", "제안서 본문 내용이 없습니다.");
+    EMPTY_PROPOSAL_BODY(400, "P007", "제안서 본문 내용이 없습니다."),
+
+    UNAUTHORIZED_ACCESS(403, "P008", "해당 제안서에 대한 권한이 없습니다."),
+    NOT_IN_VOTING(400, "P009", "투표 중인 제안서가 아닙니다.");
 
     private final int status;
     private final String code;
