@@ -68,8 +68,14 @@ public class RedisConfig {
     @Bean
     // 실제 메세지를 처리할 subbscriber를 위한 어댑터
     // subscriber 클래스와 해당 클래스의 handleMessage 메서드를 지정하여 호출
-    public MessageListenerAdapter messageListenerAdapter(RedisSubscriber subcriber) {
-        return new MessageListenerAdapter(subcriber,"handleMessage");
+    public MessageListenerAdapter messageListenerAdapter(
+            RedisSubscriber subcriber,
+            RedisTemplate<String, Object> redisTemplate
+    ) {
+
+        MessageListenerAdapter adapter = new MessageListenerAdapter(subcriber,"handleMessage");
+        adapter.setSerializer(redisTemplate.getStringSerializer()); // redisConfig에서 역직렬화하여 RedisSubscriber와 책임 분리
+        return adapter;
     }
 
     // sub/pub 채널을 정의, 모든 채팅 메세지는 해당 채널을 통해 발행/구독됨

@@ -29,13 +29,14 @@ public class MessageController {
     // 실제 브로드캐스팅 로직은 redis subscriber 측에서 처리
 
     @MessageMapping("/chat.sendMessage")
-    public void sendMessage(@Payload @Valid MessageRequest request) {
-        messageService.processChatMessage(request);
+    public void sendMessage(@Payload @Valid MessageRequest request, SimpMessageHeaderAccessor headerAccessor) {
+        messageService.processChatMessage(request,headerAccessor);
         // 수신 메세지 반송 @SendTo 또한 redis에서 같이 발행되므로 반환값은 생략
     }
 
     @MessageMapping("/chat.addUser")
     public void addUser(@Payload @Valid MessageRequest request, SimpMessageHeaderAccessor headerAccessor) {
+        // 세션에 사용자 정보 저장
         messageService.processJoinMessage(request, headerAccessor);
     }
 

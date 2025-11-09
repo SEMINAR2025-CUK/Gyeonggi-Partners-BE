@@ -21,5 +21,5 @@ public interface DiscussionRoomJpaRepository extends JpaRepository<DiscussionRoo
     @Query("UPDATE DiscussionRoomEntity d SET d.deletedAt = CURRENT_TIMESTAMP WHERE d.id = :id")
     void softDelete(@Param("id") Long id);
 
-    Optional<DiscussionRoomEntity> findByDiscussionRoomId(Long discussionRoomId);
+    Optional<DiscussionRoomEntity> findById(Long discussionRoomId);
 }

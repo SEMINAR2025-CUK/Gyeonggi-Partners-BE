@@ -1,6 +1,7 @@
 package org.example.gyeonggi_partners.domain.message.application;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.gyeonggi_partners.common.exception.BusinessException;
 import org.example.gyeonggi_partners.common.exception.MessageException;
 import org.example.gyeonggi_partners.domain.discussionRoom.exception.DiscussionRoomErrorCode;
@@ -20,9 +21,11 @@ import org.example.gyeonggi_partners.domain.user.infra.persistence.UserJpaReposi
 import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MessageService {
@@ -30,11 +33,18 @@ public class MessageService {
     private final RedisPublisher redisPublisher;
     private final MemberJpaRepository memberJpaRepository;
     private final UserJpaRepository userJpaRepository;
-    private final MessageRepository messageRepository;
     private final DiscussionRoomJpaRepository discussionRoomJpaRepository;
+    private final MessageRepository messageRepository;
 
 
-    public void processChatMessage(MessageRequest request) {
+    @Transactional
+    public void processChatMessage(MessageRequest request, SimpMessageHeaderAccessor headerAccessor) {
+
+        Long sessionUserId= (Long) headerAccessor.getSessionAttributes().get("userId");
+
+        if (sessionUserId == null || !sessionUserId.equals(request.getUserId())) {
+            throw new BusinessException(MessageErrorCode.MESSAGE_USER_INCOINSISTENCY);
+        }
 
         // 메세지 유효성 검증
         validateMessage(request);
@@ -46,11 +56,8 @@ public class MessageService {
         UserEntity userEntity=userJpaRepository.findById(request.getUserId())
                 .orElseThrow(()-> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
-        DiscussionRoomEntity roomEntity=discussionRoomJpaRepository.findById(request.getRoomId())
+        DiscussionRoomEntity roomEntity= discussionRoomJpaRepository.findById(request.getRoomId())
                 .orElseThrow(()-> new BusinessException(DiscussionRoomErrorCode.ROOM_NOT_FOUND));
-/*
-        DiscussionRoomEntity roomEntity=
-*/
 
         // db에 메세지 저장
         MessageEntity messageEntity = MessageEntity.builder()
@@ -78,6 +85,7 @@ public class MessageService {
         }
     }
 
+    @Transactional(readOnly = true)
     public MessagePageResponse getMessages(Long roomId, Long cursor, int size ) {
 
         // 다음페이지 존재 여부를 판단하기 위해 size+1개 조회

@@ -8,14 +8,12 @@ import java.util.List;
 
 public interface MessageRepository extends JpaRepository<MessageEntity, Long> {
 
-    MessageEntity save(MessageEntity message);
-
     // 최근 메세지 조회
     @Query("SELECT m FROM MessageEntity m " +
             "JOIN FETCH m.user " +
             "WHERE m.discussionRoom.id = :roomId " +
             "ORDER BY m.id DESC")
-    List<MessageEntity> findLatesetMessages(Long roomdId, Pageable pageable);
+    List<MessageEntity> findLatesetMessages(Long roomId, Pageable pageable);
 
     // 이전 메세지 조회, 커서 기반 페이징
     @Query("SELECT m FROM MessageEntity m " +
