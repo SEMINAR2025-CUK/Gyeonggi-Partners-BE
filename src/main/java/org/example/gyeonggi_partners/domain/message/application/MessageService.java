@@ -81,7 +81,7 @@ public class MessageService {
     public MessagePageResponse getMessages(Long roomId, Long cursor, int size ) {
 
         // 다음페이지 존재 여부를 판단하기 위해 size+1개 조회
-        PageRequest pageRequest = PageRequest.of(0, size+1);;
+        PageRequest pageRequest = PageRequest.of(0, size+1);
 
         List<MessageEntity> messages;
 
@@ -113,7 +113,7 @@ public class MessageService {
 
     private void validateMembership(Long userId, Long roomId) {
         if (!memberJpaRepository.existsByUserIdAndRoomId(userId, roomId)) {
-            throw new MessageException(MessageErrorCode.NOT_A_ROOM_MEMBER);
+            throw new MessageException(DiscussionRoomErrorCode.NOT_A_ROOM_MEMBER);
         }
     }
 
