@@ -2,10 +2,7 @@ package org.example.gyeonggi_partners.domain.proposal.application;
 
 import lombok.RequiredArgsConstructor;
 import org.example.gyeonggi_partners.common.exception.BusinessException;
-import org.example.gyeonggi_partners.domain.proposal.api.dto.ConsenterListResponse;
-import org.example.gyeonggi_partners.domain.proposal.api.dto.CreateProposalRequest;
-import org.example.gyeonggi_partners.domain.proposal.api.dto.ProposalResponse;
-import org.example.gyeonggi_partners.domain.proposal.api.dto.UpdateProposalRequest;
+import org.example.gyeonggi_partners.domain.proposal.api.dto.*;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.Consenter;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.ContentFormat;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.Proposal;
@@ -24,7 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProposalService {
 
     private final ProposalRepository proposalRepository;
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final ProposalLockService lockService;
 
     /**
      * 제안서 작성
@@ -59,7 +57,12 @@ public class ProposalService {
     /**
      * 제안서 수정
      */
-    public ProposalResponse updateProposal(Long proposalId, UpdateProposalRequest request) {
+    public ProposalResponse updateProposal(Long proposalId, UpdateProposalRequest request, Long userId) {
+
+        Long lockOwner = lockService.getLockOwner(proposalId);
+        if (lockOwner == null || !lockOwner.equals(userId)) {
+            throw new BusinessException(ProposalErrorCode.PROPOSAL_BEING_EDITED);
+        }
 
         Proposal proposal = proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
@@ -78,6 +81,8 @@ public class ProposalService {
         proposal.update(request.getTitle(), contents);
 
         Proposal updated = proposalRepository.save(proposal);
+
+        lockService.renewLock(proposalId, userId);
 
         return ProposalResponse.from(updated);
     }
@@ -123,4 +128,49 @@ public class ProposalService {
         return ConsenterListResponse.from(proposal);
     }
 
+
+    /**
+     * 제안서 편집 시작 ( 락 획득 )
+     */
+    public ProposalResponse startEditing(Long proposalId, Long userId) {
+
+        Proposal proposal = proposalRepository.findById(proposalId)
+                .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
+
+
+        if(proposal.getStatus() == SubmitStatus.VOTING) {
+            throw new BusinessException(ProposalErrorCode.PROPOSAL_LOCKED);
+        }
+
+        if (!lockService.tryLock(proposalId, userId)) {
+            throw new BusinessException(ProposalErrorCode.PROPOSAL_BEING_EDITED);
+        }
+
+        return ProposalResponse.from(proposal);
+    }
+
+
+    /**
+     * 제안서 수정 완료 ( 락 해제 )
+     */
+    public void finishEditing(Long proposalId, Long userId) {
+        lockService.unlock(proposalId, userId);
+    }
+
+
+    @Transactional(readOnly = true)
+    public LockStatusResponse getLockStatus(Long proposalId) {
+        Long lockOwner = lockService.getLockOwner(proposalId);
+
+        if (lockOwner == null) {
+            return LockStatusResponse.unlocked();
+        }
+
+        User user = userRepository.findById(lockOwner)
+                .orElse(null);
+
+        String nickname = user != null ? user.getNickname() : "알 수 없음";
+
+        return LockStatusResponse.locked(lockOwner, nickname);
+    }
 }

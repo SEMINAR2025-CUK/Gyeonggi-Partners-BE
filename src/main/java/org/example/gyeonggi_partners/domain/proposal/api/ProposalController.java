@@ -6,12 +6,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.example.gyeonggi_partners.common.dto.ApiResponse;
 import org.example.gyeonggi_partners.common.jwt.CustomUserDetails;
-import org.example.gyeonggi_partners.domain.proposal.api.dto.ConsenterListResponse;
-import org.example.gyeonggi_partners.domain.proposal.api.dto.CreateProposalRequest;
-import org.example.gyeonggi_partners.domain.proposal.api.dto.ProposalResponse;
-import org.example.gyeonggi_partners.domain.proposal.api.dto.UpdateProposalRequest;
+import org.example.gyeonggi_partners.domain.proposal.api.dto.*;
 import org.example.gyeonggi_partners.domain.proposal.application.ProposalService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -46,16 +44,50 @@ public class ProposalController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @Operation(summary = "제안서 편집 시작 (락 획득)", security = @SecurityRequirement(name = "bearerAuth"))
+    @PostMapping("/{proposalId}/start-editing")
+    public ResponseEntity<ApiResponse<ProposalResponse>> startEditing(
+            @PathVariable Long proposalId,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+
+        ProposalResponse response = proposalService.startEditing(proposalId, userDetails.getUserId());
+
+        return ResponseEntity.ok(ApiResponse.success(null, "편집 시작."))
+    }
+
+
+    @Operation(summary = "제안서 편집 완료 (락 해제)", security = @SecurityRequirement(name = "bearerAuth"))
+    @PostMapping("/{proposalId}/finish-editing")
+    public ResponseEntity<ApiResponse<Void>> finishEditing(
+            @PathVariable Long proposalId,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        proposalService.finishEditing(proposalId, userDetails.getUserId());
+
+        return ResponseEntity.ok(ApiResponse.success(null, "편집 완료."));
+    }
 
     @Operation(summary = "제안서 수정", security = @SecurityRequirement(name = "bearerAuth"))
     @PutMapping("/{proposalId}")
     public ResponseEntity<ApiResponse<ProposalResponse>> updateProposal(
             @PathVariable Long proposalId,
-            @Valid @RequestBody UpdateProposalRequest request) {
+            @Valid @RequestBody UpdateProposalRequest request,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        ProposalResponse response = proposalService.updateProposal(proposalId, request);
+        ProposalResponse response = proposalService.updateProposal(proposalId, request, userDetails.getUserId());
 
         return ResponseEntity.ok(ApiResponse.success(response, "제안서 수정 성공"));
+    }
+
+    @Operation(summary = "제안서 락 상태 확인")
+    @GetMapping("/{proposalId}/lock-status")
+    public ResponseEntity<ApiResponse<LockStatusResponse>> getLockStatus(
+            @PathVariable Long proposalId) {
+
+        LockStatusResponse response = proposalService.getLockStatus(proposalId);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
 
