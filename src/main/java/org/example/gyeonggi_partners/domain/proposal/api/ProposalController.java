@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.gyeonggi_partners.common.dto.ApiResponse;
 import org.example.gyeonggi_partners.common.jwt.CustomUserDetails;
+import org.example.gyeonggi_partners.domain.proposal.api.dto.ConsenterListResponse;
 import org.example.gyeonggi_partners.domain.proposal.api.dto.CreateProposalRequest;
 import org.example.gyeonggi_partners.domain.proposal.api.dto.ProposalResponse;
 import org.example.gyeonggi_partners.domain.proposal.api.dto.UpdateProposalRequest;
@@ -71,5 +72,16 @@ public class ProposalController {
         proposalService.consentProposal(proposalId, userDetails.getUserId());
 
         return ResponseEntity.ok(ApiResponse.success(null, "제안서 동의 완료"));
+    }
+
+
+    @Operation(summary = "제안서 동의자 목록 조회")
+    @GetMapping("/{proposalId}/consenters")
+    public ResponseEntity<ApiResponse<ConsenterListResponse>> getConsenters(
+            @PathVariable Long proposalId) {
+
+        ConsenterListResponse response = proposalService.getConsenters(proposalId);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

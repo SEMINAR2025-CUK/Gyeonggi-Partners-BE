@@ -2,6 +2,7 @@ package org.example.gyeonggi_partners.domain.proposal.application;
 
 import lombok.RequiredArgsConstructor;
 import org.example.gyeonggi_partners.common.exception.BusinessException;
+import org.example.gyeonggi_partners.domain.proposal.api.dto.ConsenterListResponse;
 import org.example.gyeonggi_partners.domain.proposal.api.dto.CreateProposalRequest;
 import org.example.gyeonggi_partners.domain.proposal.api.dto.ProposalResponse;
 import org.example.gyeonggi_partners.domain.proposal.api.dto.UpdateProposalRequest;
@@ -108,6 +109,18 @@ public class ProposalService {
         proposal.addConsent(consenter);
 
         proposalRepository.save(proposal);
+    }
+
+    /**
+     * 제안서 동의자 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public ConsenterListResponse getConsenters(Long proposalId) {
+
+        Proposal proposal = proposalRepository.findById(proposalId)
+                .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
+
+        return ConsenterListResponse.from(proposal);
     }
 
 }
