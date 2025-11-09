@@ -14,6 +14,7 @@ import org.example.gyeonggi_partners.domain.discussionRoom.exception.DiscussionR
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.DiscussionRoomCacheRepository;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomCacheModel;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomsPage;
+import org.example.gyeonggi_partners.domain.user.domain.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,7 @@ public class DiscussionRoomService {
     private final DiscussionRoomRepository discussionRoomRepository;
     private final MemberRepository memberRepository;
     private final DiscussionRoomCacheRepository cacheRepository;
+    private final UserRepository userRepository;
 
     /**
      * 논의방 생성
@@ -66,11 +68,16 @@ public class DiscussionRoomService {
         
         // 5. 멤버 목록 조회 (현재는 생성자만 존재)
         List<Long> memberIds = List.of(userId);
-        
+
+        // 6. 멤버 ID를 닉네임으로 변환 (추가된 부분)
+        List<String> memberNicknames = getNicknamesFromIds(memberIds);
+
+        // 6. 멤버 ID를 닉네임으로 변환 (User 도메인과의 통합 필요)
+
         // 6. JoinRoomRes 반환 (생성 = 입장 완료)
         log.info("논의방 생성 성공 - roomId: {}", savedRoom.getId());
 
-        return JoinRoomRes.of(model, memberIds);
+        return JoinRoomRes.of(model, memberNicknames);
     }
 
     public JoinRoomRes joinRoom(Long userId, Long roomId) {
@@ -97,8 +104,11 @@ public class DiscussionRoomService {
         // 5. 멤버 목록 조회
         List<Long> memberIds = cacheRepository.retrieveRoomMembers(roomId);
 
+        // 6. 멤버 ID를 닉네임으로 변환 (추가된 부분)
+        List<String> memberNicknames = getNicknamesFromIds(memberIds);
+
         log.info("논의방 입장 성공 - userId: {}, roomId: {}", userId, roomId);
-        return JoinRoomRes.of(cachedRoom, memberIds);
+        return JoinRoomRes.of(cachedRoom, memberNicknames); // 수정된 부분
     }
 
 
@@ -211,5 +221,20 @@ public class DiscussionRoomService {
         }
         
         log.info("논의방 나가기 성공 - userId: {}, roomId: {}", userId, roomId);
+    }
+
+    /**
+     * 사용자 ID 목록을 닉네임 목록으로 변환합니다. (로직 변경)
+     * UserRepository를 사용하여 실제 닉네임을 조회합니다.
+     *
+     * @param memberIds 사용자 ID 목록
+     * @return 닉네임 목록
+     */
+    private List<String> getNicknamesFromIds(List<Long> memberIds) {
+        if (memberIds.isEmpty()) {
+            return List.of();
+        }
+        // UserRepository를 사용하여 ID 목록 기반으로 닉네임 목록을 조회합니다.
+        return userRepository.findNicknamesByIds(memberIds);
     }
 }
