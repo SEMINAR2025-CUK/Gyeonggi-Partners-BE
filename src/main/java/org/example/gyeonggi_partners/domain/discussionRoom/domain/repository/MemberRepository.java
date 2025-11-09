@@ -22,4 +22,18 @@ public interface MemberRepository {
      * @return 이미 참여 중이면 true
      */
     boolean existsByUserIdAndRoomId(Long userId, Long roomId);
+
+    /**
+     * 멤버 삭제 (논의방 나가기)
+     * @param userId 사용자 ID
+     * @param roomId 논의방 ID
+     */
+    void deleteByUserIdAndRoomId(Long userId, Long roomId);
+
+    /**
+     * 논의방의 남은 멤버 수 조회
+     * @param roomId 논의방 ID
+     * @return 남은 멤버 수
+     */
+    int countByRoomId(Long roomId);
 }

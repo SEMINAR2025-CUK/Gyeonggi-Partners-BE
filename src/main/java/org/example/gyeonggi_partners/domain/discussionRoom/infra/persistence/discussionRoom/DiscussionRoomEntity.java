@@ -1,4 +1,4 @@
-package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence;
+package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.discussionRoom;
 
 import jakarta.persistence.*;
 import lombok.Builder;
@@ -8,6 +8,7 @@ import org.example.gyeonggi_partners.domain.common.BaseEntity;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.AccessLevel;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.DiscussionRoom;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.Region;
+import org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.member.MemberEntity;
 
 import java.util.ArrayList;
 import java.util.List;
