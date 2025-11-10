@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 /**
  * DiscussionRoom JPA Repository
  * Spring Data JPA 인터페이스
@@ -18,4 +20,6 @@ public interface DiscussionRoomJpaRepository extends JpaRepository<DiscussionRoo
     @Modifying
     @Query("UPDATE DiscussionRoomEntity d SET d.deletedAt = CURRENT_TIMESTAMP WHERE d.id = :id")
     void softDelete(@Param("id") Long id);
+
+    Optional<DiscussionRoomEntity> findById(Long discussionRoomId);
 }
