@@ -32,7 +32,6 @@ public class ProposalResponse {
         return ProposalResponse.builder()
                 .id(proposal.getId())
                 .roomId(proposal.getRoomId())
-                .authorId(proposal.getAuthorId())
                 .title(proposal.getTitle())
                 .contents(ContentFormatDto.from(proposal.getContents()))
                 .status(proposal.getStatus())

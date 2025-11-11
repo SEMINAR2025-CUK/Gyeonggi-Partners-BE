@@ -52,7 +52,6 @@ public class ProposalEntity extends BaseEntity {
         ProposalEntity entity = ProposalEntity.builder()
                 .id(proposal.getId())
                 .room(new RoomEntity(proposal.getRoomId()))
-                .author(new UserEntity(proposal.getAuthorId()))
                 .title(proposal.getTitle())
                 .status(proposal.getStatus())
                 .consents(proposal.getConsents())
