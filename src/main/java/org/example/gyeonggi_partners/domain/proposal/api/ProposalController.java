@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.Response;
 import org.example.gyeonggi_partners.common.dto.ApiResponse;
 import org.example.gyeonggi_partners.common.jwt.CustomUserDetails;
 import org.example.gyeonggi_partners.domain.proposal.api.dto.*;
@@ -46,14 +45,14 @@ public class ProposalController {
 
     @Operation(summary = "제안서 편집 시작 (락 획득)", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping("/{proposalId}/start-editing")
-    public ResponseEntity<ApiResponse<ProposalResponse>> startEditing(
+    public ResponseEntity<ApiResponse<Void>> startEditing(
             @PathVariable Long proposalId,
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
 
         ProposalResponse response = proposalService.startEditing(proposalId, userDetails.getUserId());
 
-        return ResponseEntity.ok(ApiResponse.success(null, "편집 시작."))
+        return ResponseEntity.ok(ApiResponse.success(null, "편집 시작."));
     }
 
 
