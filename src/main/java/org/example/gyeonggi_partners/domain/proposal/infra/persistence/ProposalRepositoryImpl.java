@@ -5,6 +5,8 @@ import org.example.gyeonggi_partners.domain.proposal.domain.model.Proposal;
 import org.example.gyeonggi_partners.domain.proposal.domain.repository.ProposalRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -26,6 +28,13 @@ public class ProposalRepositoryImpl implements ProposalRepository {
         Optional<ProposalEntity> proposalEntity = proposalJpaRepository.findById(proposalId);
 
         return proposalEntity.map(ProposalEntity::toDomain);
+    }
+
+    @Override
+    public List<Proposal> findVotingProposalsWithExpiredDeadline(LocalDateTime now) {
+        return proposalJpaRepository.findVotingProposalsWithExpiredDeadline(now).stream()
+                .map(ProposalEntity::toDomain)
+                .toList();
     }
 
 
