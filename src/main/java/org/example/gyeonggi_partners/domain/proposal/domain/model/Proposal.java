@@ -25,7 +25,6 @@ public class Proposal {
     // Id - 제안서, 논의방, 작성자
     private Long id;
     private Long roomId;
-
     // 제안서 - 제목, 내용
     private String title;
     private ContentFormat contents;
@@ -53,6 +52,7 @@ public class Proposal {
                 .consents(new ArrayList<>())
                 .createdAt(LocalDateTime.now())
                 .build();
+
     }
 
 
@@ -140,7 +140,6 @@ public class Proposal {
         this.consents.add(consenter);
 
     }
-
 
     // 마감기간,인원 충족 여부 확인
     public void checkSubmitStatus(int roomMemberCount) {
