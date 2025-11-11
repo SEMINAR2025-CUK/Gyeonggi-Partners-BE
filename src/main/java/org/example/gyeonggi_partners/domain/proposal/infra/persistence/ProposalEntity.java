@@ -8,7 +8,6 @@ import org.example.gyeonggi_partners.domain.proposal.domain.model.Consenter;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.ContentFormat;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.Proposal;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.SubmitStatus;
-import org.example.gyeonggi_partners.domain.user.infra.persistence.UserEntity;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -29,9 +28,9 @@ public class ProposalEntity extends BaseEntity {
     @JoinColumn(name = "discussion_room_id")
     private DiscussionRoomEntity room;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private UserEntity author;
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "user_id")
+//    private UserEntity author;
 
     private String title;
 

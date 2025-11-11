@@ -101,7 +101,7 @@ public class ProposalController {
     }
 
 
-    @Operation(summary = "투표 종료")
+    @Operation(summary = "투표 종료 (수동 종료)")
     @PostMapping("/{proposalId}/end-voting")
     public ResponseEntity<ApiResponse<ProposalResponse>> endVoting(
             @PathVariable Long proposalId

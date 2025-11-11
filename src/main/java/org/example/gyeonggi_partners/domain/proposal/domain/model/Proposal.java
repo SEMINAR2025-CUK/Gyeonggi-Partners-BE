@@ -125,9 +125,8 @@ public class Proposal {
         }
 
         if (this.deadline != null && LocalDateTime.now().isAfter(this.deadline)) {
-            throw new IllegalArgumentException("투표가 마감된 제안서입니다.");
+            throw new IllegalArgumentException("투표 마감 시간이 지난 제안서입니다.");
         }
-
 
 
         boolean alreadyConsented = this.consents.stream()

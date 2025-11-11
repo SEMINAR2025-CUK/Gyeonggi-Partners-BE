@@ -32,7 +32,7 @@ public class ProposalVotingScheduler {
             try {
                 proposal.endVoting();
                 proposalRepository.save(proposal);
-                log.info("제안서 {} 투표 자동 죵로 완료 (동의자 수 : {})", proposal.getId(), proposal.getConsents().size())
+                log.info("제안서 {} 투표 자동 죵로 완료 (동의자 수 : {})", proposal.getId(), proposal.getConsents().size());
             } catch (Exception e) {
                 log.info("제안서 {} 투표 종료 실패: {}", proposal.getId(), e.getMessage());
             }
