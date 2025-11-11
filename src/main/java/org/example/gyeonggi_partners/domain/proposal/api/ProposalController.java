@@ -90,6 +90,30 @@ public class ProposalController {
     }
 
 
+    @Operation(summary = "투표 시작", description = "기본 투표 기간 = 3일")
+    @PostMapping("/{proposalId}/start-voting")
+    public ResponseEntity<ApiResponse<ProposalResponse>> startVoting(
+            @PathVariable Long proposalId
+    ) {
+        ProposalResponse response = proposalService.startVoting(proposalId);
+
+        return ResponseEntity.ok(ApiResponse.success(response, "투표 시작."));
+    }
+
+
+    @Operation(summary = "투표 종료")
+    @PostMapping("/{proposalId}/end-voting")
+    public ResponseEntity<ApiResponse<ProposalResponse>> endVoting(
+            @PathVariable Long proposalId
+    ) {
+
+        ProposalResponse response = proposalService.endVoting(proposalId);
+
+        return ResponseEntity.ok(ApiResponse.success(response, "투표 종료."));
+    }
+
+
+
     @Operation(summary = "제안서 동의", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping("/{proposalId}/consents")
     public ResponseEntity<ApiResponse<ProposalResponse>> consentProposal(

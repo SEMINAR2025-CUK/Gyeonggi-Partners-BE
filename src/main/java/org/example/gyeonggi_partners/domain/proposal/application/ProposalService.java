@@ -90,13 +90,44 @@ public class ProposalService {
     /**
      * 투표 시작
      */
-    public void startSubmission(Long proposalId, Long userId) {
+    public ProposalResponse startVoting(Long proposalId) {
         Proposal proposal = proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
 
-        proposal.startSubmission();
-        proposalRepository.save(proposal);
+        try {
+            proposal.startVoting();
+        }catch (IllegalStateException e) {
+            if (e.getMessage().contains("이미 투표")) {
+                throw new BusinessException(ProposalErrorCode.ALREADY_VOTING);
+            } else if (e.getMessage().contains("제출 가능한")) {
+                throw new BusinessException(ProposalErrorCode.ALREADY_SUBMITTABLE);
+            }
+        }
+
+        Proposal saved = proposalRepository.save(proposal);
+
+        return ProposalResponse.from(saved);
     }
+
+    /**
+     * 투표 종료
+     */
+    public ProposalResponse endVoting(Long proposalId) {
+
+        Proposal proposal = proposalRepository.findById(proposalId)
+                .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
+
+        try {
+            proposal.endVoting();
+        }catch (IllegalStateException e) {
+            throw new BusinessException(ProposalErrorCode.NOT_IN_VOTING);
+        }
+
+        Proposal saved = proposalRepository.save(proposal);
+
+        return ProposalResponse.from(saved);
+    }
+
 
     /**
      * 해당 제안서에 동의하기
@@ -105,15 +136,23 @@ public class ProposalService {
         Proposal proposal = proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
 
+        proposal.checkAndUpdateVotingStatus();
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
-        Consenter consenter = new Consenter(user.getId(), user.getNickname());
-
-        proposal.addConsent(consenter);
-
-        proposalRepository.save(proposal);
+        try {
+            proposal.addConsent(new Consenter(user.getId(), user.getNickname()));
+            proposalRepository.save(proposal);
+        }catch (IllegalStateException e) {
+            if (e.getMessage().contains("이미 동의")) {
+                throw new BusinessException(ProposalErrorCode.ALREADY_CONSENTED);
+            } else if (e.getMessage().contains("투표 중")) {
+                throw new BusinessException(ProposalErrorCode.NOT_IN_VOTING);
+            } else if (e.getMessage().contains("마감")) {
+                throw new BusinessException(ProposalErrorCode.VOTING_DEADLINE_EXPIRED);
+            }
+        }
     }
 
     /**

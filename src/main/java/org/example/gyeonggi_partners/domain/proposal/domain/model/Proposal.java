@@ -66,8 +66,13 @@ public class Proposal {
 
 
 
-    // 제출 시작
-    public void startSubmission() {
+    // 투표 시작
+    public void startVoting() {
+
+        if (status == SubmitStatus.VOTING) {
+            throw new IllegalArgumentException("이미 투표가 진행 중입니다.");
+        }
+
         if (status == SubmitStatus.SUBMITTABLE) {
             throw new IllegalArgumentException("이미 제출 가능한 상태입니다");
         }
@@ -76,21 +81,60 @@ public class Proposal {
         this.deadline = LocalDateTime.now().plusDays(SUBMISSION_DURATION_DAYS);
     }
 
+    /**
+     * 투표 종료
+     */
+    public void endVoting() {
+        if(this.status != SubmitStatus.VOTING) {
+            throw new IllegalArgumentException("투표 중인 제안서가 아닙니다.");
+        }
+
+        int consentCount = this.consents != null ? this.consents.size() : 0;
+
+        if (consentCount >= SUBMISSION_MIN_CONSENTS_COUNT) {
+            this.status = SubmitStatus.SUBMITTABLE;
+        } else {
+            this.status = SubmitStatus.UNSUBMITTABLE;
+        }
+
+        this.deadline = null;
+    }
+
+    /**
+     * 투표 기간 만료 확인 및 상태 업데이트
+     */
+    public void checkAndUpdateVotingStatus() {
+        if(this.status != SubmitStatus.VOTING) {
+            return;
+        }
+
+        if(this.deadline != null && LocalDateTime.now().isAfter(this.deadline)) {
+            endVoting();
+        }
+    }
+
+
     // 동의 하기
     public void addConsent(Consenter consenter) {
         if (this.consents == null) {
             this.consents = new ArrayList<>();
         }
 
+        if (this.status != SubmitStatus.VOTING) {
+            throw new IllegalArgumentException("투표 중인 제안서가 아닙니다");
+        }
+
+        if (this.deadline != null && LocalDateTime.now().isAfter(this.deadline)) {
+            throw new IllegalArgumentException("투표가 마감된 제안서입니다.");
+        }
+
+
+
         boolean alreadyConsented = this.consents.stream()
                 .anyMatch(u -> u.getId().equals(consenter.getId()));
 
         if(alreadyConsented) {
             throw new IllegalArgumentException("이미 동의한 제안서입니다");
-        }
-
-        if (this.status != SubmitStatus.VOTING) {
-            throw new IllegalArgumentException("투표 중인 제안서가 아닙니다");
         }
 
         this.consents.add(consenter);
@@ -118,7 +162,7 @@ public class Proposal {
         }
     }
 
-    public static Proposal restore(Long id, Long roomId, Long authorId, String title, ContentFormat contents,
+    public static Proposal restore(Long id, Long roomId, String title, ContentFormat contents,
                             List<Consenter> consents, SubmitStatus status, LocalDateTime deadline, LocalDateTime createdAt,
                             LocalDateTime updatedAt, LocalDateTime deletedAt) {
         return Proposal.builder()
