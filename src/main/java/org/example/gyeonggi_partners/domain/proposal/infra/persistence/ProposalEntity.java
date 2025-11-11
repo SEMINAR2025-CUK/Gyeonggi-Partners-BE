@@ -3,11 +3,11 @@ package org.example.gyeonggi_partners.domain.proposal.infra.persistence;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.gyeonggi_partners.domain.common.BaseEntity;
+import org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.DiscussionRoomEntity;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.Consenter;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.ContentFormat;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.Proposal;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.SubmitStatus;
-import org.example.gyeonggi_partners.domain.proposal.infra.stub.RoomEntity;
 import org.example.gyeonggi_partners.domain.user.infra.persistence.UserEntity;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -26,8 +26,8 @@ public class ProposalEntity extends BaseEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_id")
-    private RoomEntity room;
+    @JoinColumn(name = "discussion_room_id")
+    private DiscussionRoomEntity room;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
@@ -51,7 +51,7 @@ public class ProposalEntity extends BaseEntity {
     public static ProposalEntity fromDomain(Proposal proposal) {
         ProposalEntity entity = ProposalEntity.builder()
                 .id(proposal.getId())
-                .room(new RoomEntity(proposal.getRoomId()))
+                .room(DiscussionRoomEntity.builder().id(proposal.getRoomId()).build())
                 .title(proposal.getTitle())
                 .status(proposal.getStatus())
                 .consents(proposal.getConsents())
@@ -66,7 +66,6 @@ public class ProposalEntity extends BaseEntity {
         return Proposal.restore(
                 this.id,
                 this.room.getId(),
-                this.author.getId(),
                 this.title,
                 this.contents,
                 this.consents,
