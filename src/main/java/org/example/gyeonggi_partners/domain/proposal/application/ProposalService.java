@@ -27,7 +27,9 @@ public class ProposalService {
     /**
      * 제안서 작성
      */
-    public ProposalResponse createProposal(CreateProposalRequest request) {
+    public ProposalResponse createProposal(CreateProposalRequest request, Long userId) {
+
+        validateRoomMember(request.getRoomId(), userId);
 
         ContentFormat contents = ContentFormat.of(
                 request.getParagraph(),
@@ -47,9 +49,13 @@ public class ProposalService {
      * 제안서 조회
      */
     @Transactional(readOnly = true)
-    public ProposalResponse getProposal(Long proposalId) {
+    public ProposalResponse getProposal(Long proposalId, Long userId) {
+
+
         Proposal proposal = proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
+
+        validateRoomMember(proposal.getRoomId(), userId);
 
         return ProposalResponse.from(proposal);
     }
@@ -59,17 +65,21 @@ public class ProposalService {
      */
     public ProposalResponse updateProposal(Long proposalId, UpdateProposalRequest request, Long userId) {
 
+        Proposal proposal = proposalRepository.findById(proposalId)
+                .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
+
+        validateRoomMember(proposal.getRoomId(), userId);
+
+        if (proposal.getStatus() == SubmitStatus.VOTING) {
+            throw new BusinessException(ProposalErrorCode.PROPOSAL_LOCKED);
+        }
+
         Long lockOwner = lockService.getLockOwner(proposalId);
         if (lockOwner == null || !lockOwner.equals(userId)) {
             throw new BusinessException(ProposalErrorCode.PROPOSAL_BEING_EDITED);
         }
 
-        Proposal proposal = proposalRepository.findById(proposalId)
-                .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
 
-        if (proposal.getStatus() == SubmitStatus.VOTING) {
-            throw new BusinessException(ProposalErrorCode.PROPOSAL_LOCKED);
-        }
 
         ContentFormat contents = ContentFormat.of(
                 request.getParagraph(),
@@ -90,9 +100,11 @@ public class ProposalService {
     /**
      * 투표 시작
      */
-    public ProposalResponse startVoting(Long proposalId) {
+    public ProposalResponse startVoting(Long proposalId, Long userId) {
         Proposal proposal = proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
+
+        validateRoomMember(proposal.getRoomId(), userId);
 
         try {
             proposal.startVoting();
@@ -112,10 +124,12 @@ public class ProposalService {
     /**
      * 투표 종료
      */
-    public ProposalResponse endVoting(Long proposalId) {
+    public ProposalResponse endVoting(Long proposalId, Long userId) {
 
         Proposal proposal = proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
+
+        validateRoomMember(proposal.getRoomId(), userId);
 
         try {
             proposal.endVoting();
@@ -135,6 +149,8 @@ public class ProposalService {
     public void consentProposal(Long proposalId, Long userId) {
         Proposal proposal = proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
+
+        validateRoomMember(proposal.getRoomId(), userId);
 
         proposal.checkAndUpdateVotingStatus();
 
@@ -159,10 +175,12 @@ public class ProposalService {
      * 제안서 동의자 목록 조회
      */
     @Transactional(readOnly = true)
-    public ConsenterListResponse getConsenters(Long proposalId) {
+    public ConsenterListResponse getConsenters(Long proposalId, Long userId) {
 
         Proposal proposal = proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
+
+        validateRoomMember(proposal.getRoomId(), userId);
 
         return ConsenterListResponse.from(proposal);
     }
@@ -176,6 +194,7 @@ public class ProposalService {
         Proposal proposal = proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
 
+        validateRoomMember(proposal.getRoomId(), userId);
 
         if(proposal.getStatus() == SubmitStatus.VOTING) {
             throw new BusinessException(ProposalErrorCode.PROPOSAL_LOCKED);
@@ -193,12 +212,24 @@ public class ProposalService {
      * 제안서 수정 완료 ( 락 해제 )
      */
     public void finishEditing(Long proposalId, Long userId) {
+
+        proposalRepository.findById(proposalId)
+                        .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
+
+        validateRoomMember(proposalId, userId);
+
         lockService.unlock(proposalId, userId);
     }
 
 
     @Transactional(readOnly = true)
-    public LockStatusResponse getLockStatus(Long proposalId) {
+    public LockStatusResponse getLockStatus(Long proposalId, Long userId) {
+
+        Proposal proposal = proposalRepository.findById(proposalId)
+                .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
+
+        validateRoomMember(proposal.getRoomId(), userId);
+
         Long lockOwner = lockService.getLockOwner(proposalId);
 
         if (lockOwner == null) {
@@ -211,5 +242,12 @@ public class ProposalService {
         String nickname = user != null ? user.getNickname() : "알 수 없음";
 
         return LockStatusResponse.locked(lockOwner, nickname);
+    }
+
+    private void validateRoomMember(Long roomId, Long userId) {
+        boolean isMember = proposalRepository.existsMemberInRoom(roomId, userId);
+        if(!isMember) {
+            throw new BusinessException(ProposalErrorCode.UNAUTHORIZED_ACCESS);
+        }
     }
 }

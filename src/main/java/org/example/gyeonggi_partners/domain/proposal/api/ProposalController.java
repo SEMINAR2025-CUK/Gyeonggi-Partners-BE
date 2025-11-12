@@ -22,23 +22,26 @@ public class ProposalController {
 
     private final ProposalService proposalService;
 
-    @Operation(summary = "제안서 생성")
+    @Operation(summary = "제안서 생성", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping
     public ResponseEntity<ApiResponse<ProposalResponse>> createProposal(
-            @Valid @RequestBody CreateProposalRequest request) {
+            @Valid @RequestBody CreateProposalRequest request,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        ProposalResponse response = proposalService.createProposal(request);
+        ProposalResponse response = proposalService.createProposal(request, userDetails.getUserId());
 
         return ResponseEntity.ok(ApiResponse.success(response, "제안서 생성 성공"));
     }
 
 
-    @Operation(summary = "제안서 조회")
+    @Operation(summary = "제안서 조회", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/{proposalId}")
     public ResponseEntity<ApiResponse<ProposalResponse>> getProposal(
-            @PathVariable Long proposalId) {
+            @PathVariable Long proposalId,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
 
-        ProposalResponse response = proposalService.getProposal(proposalId);
+        ProposalResponse response = proposalService.getProposal(proposalId, userDetails.getUserId());
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -79,35 +82,38 @@ public class ProposalController {
         return ResponseEntity.ok(ApiResponse.success(response, "제안서 수정 성공"));
     }
 
-    @Operation(summary = "제안서 락 상태 확인")
+    @Operation(summary = "제안서 락 상태 확인", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/{proposalId}/lock-status")
     public ResponseEntity<ApiResponse<LockStatusResponse>> getLockStatus(
-            @PathVariable Long proposalId) {
+            @PathVariable Long proposalId,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        LockStatusResponse response = proposalService.getLockStatus(proposalId);
+        LockStatusResponse response = proposalService.getLockStatus(proposalId, userDetails.getUserId());
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
 
-    @Operation(summary = "투표 시작", description = "기본 투표 기간 = 3일")
+    @Operation(summary = "투표 시작", description = "기본 투표 기간 = 3일", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping("/{proposalId}/start-voting")
     public ResponseEntity<ApiResponse<ProposalResponse>> startVoting(
-            @PathVariable Long proposalId
+            @PathVariable Long proposalId,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        ProposalResponse response = proposalService.startVoting(proposalId);
+        ProposalResponse response = proposalService.startVoting(proposalId, userDetails.getUserId());
 
         return ResponseEntity.ok(ApiResponse.success(response, "투표 시작."));
     }
 
 
-    @Operation(summary = "투표 종료 (수동 종료)")
+    @Operation(summary = "투표 종료 (수동 종료)", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping("/{proposalId}/end-voting")
     public ResponseEntity<ApiResponse<ProposalResponse>> endVoting(
-            @PathVariable Long proposalId
+            @PathVariable Long proposalId,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
 
-        ProposalResponse response = proposalService.endVoting(proposalId);
+        ProposalResponse response = proposalService.endVoting(proposalId, userDetails.getUserId());
 
         return ResponseEntity.ok(ApiResponse.success(response, "투표 종료."));
     }
@@ -127,12 +133,13 @@ public class ProposalController {
     }
 
 
-    @Operation(summary = "제안서 동의자 목록 조회")
+    @Operation(summary = "제안서 동의자 목록 조회", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/{proposalId}/consenters")
     public ResponseEntity<ApiResponse<ConsenterListResponse>> getConsenters(
-            @PathVariable Long proposalId) {
+            @PathVariable Long proposalId,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        ConsenterListResponse response = proposalService.getConsenters(proposalId);
+        ConsenterListResponse response = proposalService.getConsenters(proposalId, userDetails.getUserId());
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
