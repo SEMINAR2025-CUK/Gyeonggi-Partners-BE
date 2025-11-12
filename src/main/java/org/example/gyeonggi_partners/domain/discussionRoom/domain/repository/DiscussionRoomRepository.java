@@ -1,7 +1,10 @@
 package org.example.gyeonggi_partners.domain.discussionRoom.domain.repository;
 
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.DiscussionRoom;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -30,4 +33,11 @@ public interface DiscussionRoomRepository {
      * @param roomId 논의방 ID
      */
     void softDelete(Long roomId);
+
+    /**
+     * 전체 논의방 목록 조회 (페이징, 최신순)
+     * @param pageable 페이징 정보
+     * @return 페이징된 논의방 목록
+     */
+    Page<DiscussionRoom> findAllByOrderByCreatedAtDesc(Pageable pageable);
 }
