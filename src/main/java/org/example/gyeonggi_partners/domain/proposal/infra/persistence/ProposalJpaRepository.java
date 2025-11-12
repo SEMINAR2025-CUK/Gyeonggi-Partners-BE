@@ -12,4 +12,9 @@ public interface ProposalJpaRepository extends JpaRepository<ProposalEntity, Lon
 
     @Query("SELECT p FROM ProposalEntity p WHERE p.status = 'VOTING' AND p.deadline < :now")
     List<ProposalEntity> findVotingProposalsWithExpiredDeadline(@Param("now") LocalDateTime now);
+
+
+    @Query("SELECT COUNT(m) > 0 FROM DiscussionRoomEntity r JOIN r.members m " +
+            "WHERE r.id = :roomId AND m.id = :userId")
+    boolean existsMemberInRoom(@Param("userId") Long userId,@Param("roomId") Long roomId);
 }

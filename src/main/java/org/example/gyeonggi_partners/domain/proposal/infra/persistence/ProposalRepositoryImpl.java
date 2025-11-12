@@ -37,5 +37,9 @@ public class ProposalRepositoryImpl implements ProposalRepository {
                 .toList();
     }
 
+    @Override
+    public boolean existsMemberInRoom(Long memberId, Long roomId) {
+        return proposalJpaRepository.existsMemberInRoom(memberId, roomId);
+    }
 
 }
