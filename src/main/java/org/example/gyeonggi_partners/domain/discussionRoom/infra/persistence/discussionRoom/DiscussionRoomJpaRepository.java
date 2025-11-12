@@ -1,5 +1,7 @@
 package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.discussionRoom;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -22,4 +24,10 @@ public interface DiscussionRoomJpaRepository extends JpaRepository<DiscussionRoo
     void softDelete(@Param("id") Long id);
 
     Optional<DiscussionRoomEntity> findById(Long discussionRoomId);
+
+    /**
+     * 전체 논의방 목록 조회 (삭제되지 않은 것만, 최신순)
+     */
+    @Query("SELECT d FROM DiscussionRoomEntity d WHERE d.deletedAt IS NULL ORDER BY d.createdAt DESC")
+    Page<DiscussionRoomEntity> findAllByDeletedAtIsNullOrderByCreatedAtDesc(Pageable pageable);
 }

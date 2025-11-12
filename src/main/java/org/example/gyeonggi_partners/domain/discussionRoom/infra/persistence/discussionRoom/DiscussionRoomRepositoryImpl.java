@@ -3,6 +3,8 @@ package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.di
 import lombok.RequiredArgsConstructor;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.DiscussionRoom;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.repository.DiscussionRoomRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -34,5 +36,12 @@ public class DiscussionRoomRepositoryImpl implements DiscussionRoomRepository {
     @Override
     public void softDelete(Long roomId) {
         discussionRoomJpaRepository.softDelete(roomId);
+    }
+
+    @Override
+    public Page<DiscussionRoom> findAllByOrderByCreatedAtDesc(Pageable pageable) {
+        Page<DiscussionRoomEntity> entityPage = discussionRoomJpaRepository
+                .findAllByDeletedAtIsNullOrderByCreatedAtDesc(pageable);
+        return entityPage.map(DiscussionRoomEntity::toDomain);
     }
 }

@@ -1,6 +1,9 @@
 package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.member;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 /**
  * Member JPA Repository
@@ -22,4 +25,10 @@ public interface MemberJpaRepository extends JpaRepository<MemberEntity, Long> {
      * 논의방의 남은 멤버 수 조회
      */
     int countByRoomId(Long roomId);
+
+    /**
+     * 사용자가 참여한 논의방 ID 목록 조회 (최신 참여순)
+     */
+    @Query("SELECT m.roomId FROM MemberEntity m WHERE m.userId = :userId ORDER BY m.createdAt DESC")
+    Page<Long> findRoomIdsByUserIdOrderByJoinedAtDesc(Long userId, Pageable pageable);
 }
