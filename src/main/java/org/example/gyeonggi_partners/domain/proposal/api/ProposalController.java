@@ -49,7 +49,7 @@ public class ProposalController {
     }
 
 
-    @Operation(summary = "특정 논의방의 제안서 목록 조회")
+    @Operation(summary = "특정 논의방의 제안서 목록 조회", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/rooms/{roomId}")
     public ResponseEntity<ApiResponse<List<ProposalResponse>>> getProposalsByRoom(
             @PathVariable Long roomId,
