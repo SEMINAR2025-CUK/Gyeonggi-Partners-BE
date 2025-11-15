@@ -24,7 +24,8 @@ public enum ProposalErrorCode implements ErrorCode {
     ALREADY_VOTING(409, "P012", "이미 투표가 진행 중입니다."),
     ALREADY_SUBMITTABLE(409, "P013", "이미 제출 가능한 상태입니다."),
     INVALID_VOTING_PERIOD(400, "P014", "투표 기간은 1일 이상 30일 이하여야 합니다."),
-    VOTING_DEADLINE_EXPIRED(400, "P015", "투표 마감 시간이 지났습니다.");
+    VOTING_DEADLINE_EXPIRED(400, "P015", "투표 마감 시간이 지났습니다."),
+    PROPOSAL_LIMIT_EXCEEDED(400, "P016", "논의방당 최대 5개의 제안서만 생성할 수 있습니다.");
 
     private final int status;
     private final String code;
