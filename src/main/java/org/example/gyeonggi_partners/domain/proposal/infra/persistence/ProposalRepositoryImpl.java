@@ -42,4 +42,15 @@ public class ProposalRepositoryImpl implements ProposalRepository {
         return proposalJpaRepository.existsMemberInRoom(memberId, roomId);
     }
 
+    @Override
+    public List<Proposal> findByRoomId(Long roomId) {
+        return proposalJpaRepository.findByRoomId(roomId).stream()
+                .map(ProposalEntity::toDomain)
+                .toList();
+    }
+
+    @Override
+    public int countByRoomId(Long roomId) {
+        return proposalJpaRepository.countByRoomId(roomId);
+    }
 }

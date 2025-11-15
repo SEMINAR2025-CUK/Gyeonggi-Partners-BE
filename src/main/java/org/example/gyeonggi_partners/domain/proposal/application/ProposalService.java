@@ -15,6 +15,8 @@ import org.example.gyeonggi_partners.domain.user.exception.UserErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @RequiredArgsConstructor
 @Service
 @Transactional
@@ -30,6 +32,12 @@ public class ProposalService {
     public ProposalResponse createProposal(CreateProposalRequest request, Long userId) {
 
         validateRoomMember(request.getRoomId(), userId);
+
+
+        int proposalCount = proposalRepository.countByRoomId(request.getRoomId());
+        if (proposalCount >= 5) {
+            throw new BusinessException(ProposalErrorCode.PROPOSAL_LIMIT_EXCEEDED);
+        }
 
         ContentFormat contents = ContentFormat.of(
                 request.getParagraph(),
@@ -59,6 +67,23 @@ public class ProposalService {
 
         return ProposalResponse.from(proposal);
     }
+
+
+    /**
+     * 제안서 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<ProposalResponse> getProposalsByRoom(Long roomId, Long userId) {
+
+        validateRoomMember(roomId, userId);
+
+        List<Proposal> proposals = proposalRepository.findByRoomId(roomId);
+
+        return proposals.stream()
+                .map(ProposalResponse::from)
+                .toList();
+    }
+
 
     /**
      * 제안서 수정

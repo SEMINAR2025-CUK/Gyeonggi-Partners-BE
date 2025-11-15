@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "Proposal", description = "제안서 API")
 @RestController
 @RequestMapping("/api/proposals")
@@ -45,6 +47,18 @@ public class ProposalController {
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+
+    @Operation(summary = "특정 논의방의 제안서 목록 조회")
+    @GetMapping("/rooms/{roomId}")
+    public ResponseEntity<ApiResponse<List<ProposalResponse>>> getProposalsByRoom(
+            @PathVariable Long roomId,
+            @Parameter(required = true) @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        List<ProposalResponse> proposals = proposalService.getProposalsByRoom(roomId, userDetails.getUserId());
+        return ResponseEntity.ok(ApiResponse.success(proposals));
+    }
+
 
     @Operation(summary = "제안서 편집 시작 (락 획득)", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping("/{proposalId}/start-editing")
