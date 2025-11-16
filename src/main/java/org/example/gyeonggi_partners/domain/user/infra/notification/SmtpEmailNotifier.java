@@ -30,7 +30,12 @@ public class SmtpEmailNotifier implements EmailNotifier {
             
             mailSender.send(message);
             log.info("이메일 발송 성공 - 수신자: {}", email);
-            
+
+            /**
+             * 테스트용 로그 출력
+             */
+            log.info("발송된 인증번호 (테스트용): {}", verificationCode);
+
         } catch (Exception e) {
             log.error("이메일 발송 실패 - 수신자: {}, 에러: {}", email, e.getMessage());
             throw new RuntimeException("이메일 발송에 실패했습니다.", e);
