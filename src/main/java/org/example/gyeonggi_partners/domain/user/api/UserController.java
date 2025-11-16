@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.example.gyeonggi_partners.common.dto.ApiResponse;
+import org.example.gyeonggi_partners.domain.user.api.dto.EmailVerificationRequest;
 import org.example.gyeonggi_partners.domain.user.api.dto.SignUpRequest;
 import org.example.gyeonggi_partners.domain.user.api.dto.SignUpResponse;
 import org.example.gyeonggi_partners.domain.user.api.dto.VerifyEmailRequest;
@@ -42,8 +43,8 @@ public class UserController {
      */
     @Operation(summary = "이메일 인증번호 발송", description = "입력한 이메일로 6자리 인증번호를 발송합니다. (유효시간: 5분)")
     @PostMapping("/email/send")
-    public ResponseEntity<ApiResponse<Void>> sendEmailVerification(@RequestBody Map<String, String> request) {
-        String email = request.get("email");
+    public ResponseEntity<ApiResponse<Void>> sendEmailVerification(@RequestBody EmailVerificationRequest request) {
+        String email = request.getEmail();
         userService.sendEmailVerification(email);
         return ResponseEntity.ok(ApiResponse.success(null, "인증번호가 성공적으로 발송되었습니다."));
     }
