@@ -1,7 +1,10 @@
 package org.example.gyeonggi_partners.domain.user.infra.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -36,5 +39,13 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, Long> {
     Optional<UserEntity> findByLoginId(String loginId);
 
     Optional<UserEntity> findById(Long id);
+
+    /**
+     * ID 목록으로 닉네임만 조회 (추가)
+     */
+    @Query("SELECT u.nickname FROM UserEntity u WHERE u.id IN :ids")
+    List<String> findNicknameByIdIn(@Param("ids") List<Long> ids);
+
+
 
 }

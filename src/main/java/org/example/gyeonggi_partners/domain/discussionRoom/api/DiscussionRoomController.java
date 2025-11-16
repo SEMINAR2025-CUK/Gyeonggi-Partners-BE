@@ -9,8 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.gyeonggi_partners.common.dto.ApiResponse;
 import org.example.gyeonggi_partners.common.jwt.CustomUserDetails;
-import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.CreateDiscussionRoomReq;
-import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.CreateDiscussionRoomRes;
+import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.*;
 import org.example.gyeonggi_partners.domain.discussionRoom.api.dto.DiscussionRoomListRes;
 import org.example.gyeonggi_partners.domain.discussionRoom.application.DiscussionRoomService;
 import org.springframework.http.HttpStatus;
@@ -31,7 +30,7 @@ public class DiscussionRoomController {
      * 
      * @param request 논의방 생성 요청 데이터
      * @param userDetails 현재 로그인한 사용자 정보 (Spring Security)
-     * @return 생성된 논의방 정보
+     * @return 생성된 논의방 정보 (입장 완료 상태)
      */
     @Operation(
             summary = "논의방 생성", 
@@ -39,11 +38,11 @@ public class DiscussionRoomController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @PostMapping("/create")
-    public ResponseEntity<ApiResponse<CreateDiscussionRoomRes>> createRoom(
+    public ResponseEntity<ApiResponse<JoinRoomRes>> createRoom(
             @Valid @RequestBody CreateDiscussionRoomReq request,
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        CreateDiscussionRoomRes response = discussionRoomService.createDiscussionRoom(
+        JoinRoomRes response = discussionRoomService.createRoom(
                 request, 
                 userDetails.getUserId()
         );
@@ -102,7 +101,7 @@ public class DiscussionRoomController {
             
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        DiscussionRoomListRes response = discussionRoomService.retrieveMyJoinedRooms(
+        DiscussionRoomListRes response = discussionRoomService.retrieveJoinedRooms(
                 userDetails.getUserId(), 
                 page, 
                 size
@@ -110,6 +109,43 @@ public class DiscussionRoomController {
         
         return ResponseEntity.ok(
                 ApiResponse.success(response, "참여한 논의방 목록을 조회했습니다.")
+        );
+    }
+
+    @Operation(
+            summary = "논의방 입장",
+            description = "논의방에 입장합니다. 입장 시 방 정보와 멤버 목록을 제공합니다.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @PostMapping("/{roomId}/join")
+    public ResponseEntity<ApiResponse<JoinRoomRes>> joinRoom(
+            @Parameter(description = "논의방 ID", example = "1")
+            @PathVariable Long roomId,
+            
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        JoinRoomRes response = discussionRoomService.joinRoom(userDetails.getUserId(), roomId);
+        
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(response, "논의방에 입장했습니다."));
+    }
+
+    @Operation(
+            summary = "논의방 나가기",
+            description = "논의방에서 나갑니다. 마지막 멤버가 나가면 방이 삭제됩니다(Soft Delete).",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @DeleteMapping("/{roomId}/leave")
+    public ResponseEntity<ApiResponse<Void>> leaveRoom(
+            @Parameter(description = "논의방 ID", example = "1")
+            @PathVariable Long roomId,
+            
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        discussionRoomService.leaveRoom(userDetails.getUserId(), roomId);
+        
+        return ResponseEntity.ok(
+                ApiResponse.success(null, "논의방 나가기에 성공하였습니다.")
         );
     }
 }

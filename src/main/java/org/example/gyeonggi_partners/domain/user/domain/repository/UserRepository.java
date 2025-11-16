@@ -2,6 +2,7 @@ package org.example.gyeonggi_partners.domain.user.domain.repository;
 
 import org.example.gyeonggi_partners.domain.user.domain.model.User;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -55,6 +56,13 @@ public interface UserRepository {
 
     Optional<User> findById(Long id);
 
+
+    /**
+     * 사용자 ID 목록으로 닉네임 목록을 조회합니다. (추가)
+     * @param ids 사용자 ID 목록
+     * @return 닉네임 목록
+     */
+    List<String> findNicknamesByIds(List<Long> ids);
 
 
 }

@@ -8,48 +8,50 @@ import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.Region;
 import org.example.gyeonggi_partners.domain.discussionRoom.infra.cache.dto.DiscussionRoomCacheModel;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
- * 논의방 요약 정보 응답 DTO
- * 전체 목록 조회 및 내가 참여한 방 조회 시 사용
+ * 논의방 입장 응답 DTO
  */
 @Getter
 @Builder
-@Schema(description = "논의방 요약 정보")
-public class DiscussionRoomInfo {
+@Schema(description = "논의방 입장 응답")
+public class JoinRoomRes {
     
     @Schema(description = "논의방 ID", example = "1")
     private Long roomId;
     
     @Schema(description = "논의방 제목", example = "부천시 BJ로 인한 지역 상권문제")
     private String title;
-
+    
+    @Schema(description = "논의방 설명", example = "현재 부천시 BJ로 인한 상권 문제에 대해 논의합니다")
+    private String description;
+    
     @Schema(description = "지역", example = "BUCHEON")
     private Region region;
     
-    @Schema(description = "입장 조건", example = "PUBLIC")
+    @Schema(description = "접근 범위", example = "PUBLIC")
     private AccessLevel accessLevel;
     
-    @Schema(description = "현재 참여 인원", example = "15")
+    @Schema(description = "현재 멤버 수", example = "15")
     private Integer currentUsers;
+
+    @Schema(description = "멤버 닉네임 리스트") // 수정됨
+    private List<String> memberNicknames;
     
-    @Schema(description = "생성 일시", example = "2025-11-06T10:30:00")
-    private LocalDateTime createdAt;
+    @Schema(description = "입장 시각", example = "2025-11-08T14:30:00")
+    private LocalDateTime joinedAt;
     
-    /**
-     * CachedDiscussionRoom에서 응답 DTO로 변환
-     * 
-     * @param cached 캐시된 논의방 정보
-     * @return 논의방 요약 정보 응답 DTO
-     */
-    public static DiscussionRoomInfo from(DiscussionRoomCacheModel cached) {
-        return DiscussionRoomInfo.builder()
+    public static JoinRoomRes of(DiscussionRoomCacheModel cached,List<String> memberNicknames) {
+        return JoinRoomRes.builder()
                 .roomId(cached.getId())
-                .title(cached.getTitle())// 캐시에는 description이 없음
+                .title(cached.getTitle())
+                .description(cached.getDescription())
                 .region(cached.getRegion())
                 .accessLevel(cached.getAccessLevel())
                 .currentUsers(cached.getCurrentUsers())
-                .createdAt(cached.getCreatedAt())
+                .memberNicknames(memberNicknames)
+                .joinedAt(LocalDateTime.now())
                 .build();
     }
 }

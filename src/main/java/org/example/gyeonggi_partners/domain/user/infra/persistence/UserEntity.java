@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.gyeonggi_partners.domain.common.BaseEntity;
-import org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.MemberEntity;
+import org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.member.MemberEntity;
 import org.example.gyeonggi_partners.domain.user.domain.model.User;
 
 import java.util.ArrayList;

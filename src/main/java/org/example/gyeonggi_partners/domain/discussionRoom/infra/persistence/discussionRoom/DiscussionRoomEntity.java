@@ -1,4 +1,5 @@
-package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence;
+package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.discussionRoom;
+
 
 import jakarta.persistence.*;
 import lombok.Builder;
@@ -8,7 +9,12 @@ import org.example.gyeonggi_partners.domain.common.BaseEntity;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.AccessLevel;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.DiscussionRoom;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.Region;
+import org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.member.MemberEntity;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.Type;
+import org.hibernate.type.SqlTypes;
 
+import java.sql.SQLType;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,12 +39,14 @@ public class DiscussionRoomEntity extends BaseEntity {
     @Column(name = "description")
     private String description;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
-    @Column(name = "region", nullable = false)
+    @Column(name = "region", nullable = false, columnDefinition = "region_enum") // DB의 ENUM 타입 이름 명시
     private Region region;
 
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
-    @Column(name = "access_level", nullable = false)
+    @Column(name = "access_level", nullable = false, columnDefinition = "access_level_enum") // DB의 ENUM 타입 이름 명시
     private AccessLevel accessLevel;
 
     @Column(name = "member_count", nullable = false)

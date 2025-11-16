@@ -1,8 +1,10 @@
-package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence;
+package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.member;
 
 import lombok.RequiredArgsConstructor;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.Member;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.repository.MemberRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -25,5 +27,20 @@ public class MemberRepositoryImpl implements MemberRepository {
     @Override
     public boolean existsByUserIdAndRoomId(Long userId, Long roomId) {
         return memberJpaRepository.existsByUserIdAndRoomId(userId, roomId);
+    }
+
+    @Override
+    public void deleteByUserIdAndRoomId(Long userId, Long roomId) {
+        memberJpaRepository.deleteByUserIdAndRoomId(userId, roomId);
+    }
+
+    @Override
+    public int countByRoomId(Long roomId) {
+        return memberJpaRepository.countByRoomId(roomId);
+    }
+
+    @Override
+    public Page<Long> findRoomIdsByUserId(Long userId, Pageable pageable) {
+        return memberJpaRepository.findRoomIdsByUserIdOrderByJoinedAtDesc(userId, pageable);
     }
 }
