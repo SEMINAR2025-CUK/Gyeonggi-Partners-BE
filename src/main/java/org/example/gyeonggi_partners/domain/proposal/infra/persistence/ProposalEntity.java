@@ -3,7 +3,7 @@ package org.example.gyeonggi_partners.domain.proposal.infra.persistence;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.gyeonggi_partners.domain.common.BaseEntity;
-import org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.DiscussionRoomEntity;
+import org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.discussionRoom.DiscussionRoomEntity;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.Consenter;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.ContentFormat;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.Proposal;

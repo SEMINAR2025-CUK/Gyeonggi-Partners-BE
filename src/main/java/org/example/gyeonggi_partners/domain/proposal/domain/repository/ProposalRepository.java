@@ -16,6 +16,8 @@ public interface ProposalRepository {
 
     boolean existsMemberInRoom(Long userId, Long roomId);
 
+
+
     List<Proposal> findByRoomId(Long roomId);
 
     int countByRoomId(Long roomId);

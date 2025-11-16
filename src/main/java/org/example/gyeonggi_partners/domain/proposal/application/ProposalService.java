@@ -2,6 +2,7 @@ package org.example.gyeonggi_partners.domain.proposal.application;
 
 import lombok.RequiredArgsConstructor;
 import org.example.gyeonggi_partners.common.exception.BusinessException;
+import org.example.gyeonggi_partners.domain.discussionRoom.domain.repository.MemberRepository;
 import org.example.gyeonggi_partners.domain.proposal.api.dto.*;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.Consenter;
 import org.example.gyeonggi_partners.domain.proposal.domain.model.ContentFormat;
@@ -25,6 +26,7 @@ public class ProposalService {
     private final ProposalRepository proposalRepository;
     private final UserRepository userRepository;
     private final ProposalLockService lockService;
+    private final MemberRepository memberRepository;
 
     /**
      * 제안서 작성
@@ -270,7 +272,7 @@ public class ProposalService {
     }
 
     private void validateRoomMember(Long roomId, Long userId) {
-        boolean isMember = proposalRepository.existsMemberInRoom(roomId, userId);
+        boolean isMember = memberRepository.existsByUserIdAndRoomId(userId, roomId);
         if(!isMember) {
             throw new BusinessException(ProposalErrorCode.UNAUTHORIZED_ACCESS);
         }
