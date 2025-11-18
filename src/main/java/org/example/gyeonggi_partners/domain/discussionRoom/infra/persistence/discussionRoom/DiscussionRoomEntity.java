@@ -9,14 +9,8 @@ import org.example.gyeonggi_partners.domain.common.BaseEntity;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.AccessLevel;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.DiscussionRoom;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.Region;
-import org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.member.MemberEntity;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.Type;
 import org.hibernate.type.SqlTypes;
-
-import java.sql.SQLType;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * DiscussionRoom JPA 엔티티
@@ -56,9 +50,6 @@ public class DiscussionRoomEntity extends BaseEntity {
     @Version
     @Column(name = "version")
     private Long version;
-
-    @OneToMany(mappedBy = "discussionRoom", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MemberEntity> members = new ArrayList<>();
 
     @Builder
     private DiscussionRoomEntity(Long id, String title, String description,
