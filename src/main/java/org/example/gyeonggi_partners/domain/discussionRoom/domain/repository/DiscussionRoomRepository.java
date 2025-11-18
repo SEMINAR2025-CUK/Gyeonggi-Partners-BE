@@ -47,4 +47,12 @@ public interface DiscussionRoomRepository {
      * @return 논의방 목록
      */
     List<DiscussionRoom> findAllByIdIn(List<Long> ids);
+
+    /**
+     * 논의방 ID로 조회 (비관적 락)
+     * 동시성 제어가 필요한 경우 사용 (SELECT FOR UPDATE)
+     * @param id 논의방 ID
+     * @return 조회된 논의방 (잠금 획득)
+     */
+    Optional<DiscussionRoom> findByIdWithLock(Long id);
 }

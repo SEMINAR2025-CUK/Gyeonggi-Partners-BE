@@ -56,4 +56,10 @@ public class DiscussionRoomRepositoryImpl implements DiscussionRoomRepository {
                 .map(DiscussionRoomEntity::toDomain)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public Optional<DiscussionRoom> findByIdWithLock(Long id) {
+        return discussionRoomJpaRepository.findByIdWithLock(id)
+                .map(DiscussionRoomEntity::toDomain);
+    }
 }
