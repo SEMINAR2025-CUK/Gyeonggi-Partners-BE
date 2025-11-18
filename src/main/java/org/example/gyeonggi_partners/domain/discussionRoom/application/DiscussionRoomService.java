@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -141,14 +141,21 @@ public class DiscussionRoomService {
             return DiscussionRoomListRes.of(List.of(), page, size, 0);
         }
 
-        // 2. 각 방 상세 정보 조회 (캐시 활용)
+        // 2. 각 방 상세 정보 조회 (N+1 쿼리 방지: 멤버 수 일괄 조회)
         List<DiscussionRoom> rooms = roomPage.getContent();
+        List<Long> roomIds = rooms.stream()
+                .map(DiscussionRoom::getId)
+                .collect(Collectors.toList());
+
+        // 멤버 수 일괄 조회 (N+1 방지)
+        Map<Long, Integer> memberCountMap = memberRepository.countByRoomIds(roomIds);
+
         List<DiscussionRoomInfo> roomSummaries = rooms.stream()
                 .map(room -> {
                     // retrieveCachingRoom: 캐시 미스 시 DB 조회 후 캐싱
                     DiscussionRoomCacheModel cached = cacheRepository.retrieveCachingRoom(room.getId())
                             .orElseGet(() -> {
-                                int currentUsers = memberRepository.countByRoomId(room.getId());
+                                int currentUsers = memberCountMap.getOrDefault(room.getId(), 0);
                                 return DiscussionRoomCacheModel.fromDomainModel(room, currentUsers);
                             });
                     return DiscussionRoomInfo.from(cached);
@@ -190,18 +197,17 @@ public class DiscussionRoomService {
 
         // 2. 각 방 상세 정보 조회 (N+1 쿼리 방지: 일괄 조회)
         List<Long> roomIds = roomIdPage.getContent();
-        List<DiscussionRoomInfo> roomSummaries = roomIds.stream()
-                .map(roomId -> discussionRoomRepository.findById(roomId))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
         List<DiscussionRoom> rooms = discussionRoomRepository.findAllByIdIn(roomIds);
+
+        // 멤버 수 일괄 조회 (N+1 방지)
+        Map<Long, Integer> memberCountMap = memberRepository.countByRoomIds(roomIds);
 
         List<DiscussionRoomInfo> roomSummaries = rooms.stream()
                 .map(room -> {
                     // retrieveCachingRoom: 캐시 미스 시 DB 조회 후 캐싱
                     DiscussionRoomCacheModel cached = cacheRepository.retrieveCachingRoom(room.getId())
                             .orElseGet(() -> {
-                                int currentUsers = memberRepository.countByRoomId(room.getId());
+                                int currentUsers = memberCountMap.getOrDefault(room.getId(), 0);
                                 return DiscussionRoomCacheModel.fromDomainModel(room, currentUsers);
                             });
                     return DiscussionRoomInfo.from(cached);

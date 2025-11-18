@@ -4,6 +4,9 @@ import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.Member;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * Member 도메인 Repository 인터페이스
  * 도메인 계층에서 정의하고, 인프라 계층에서 구현
@@ -46,4 +49,11 @@ public interface MemberRepository {
      * @return 페이징된 논의방 ID 목록
      */
     Page<Long> findRoomIdsByUserId(Long userId, Pageable pageable);
+
+    /**
+     * 여러 논의방의 멤버 수 일괄 조회 (N+1 쿼리 방지)
+     * @param roomIds 논의방 ID 목록
+     * @return roomId를 키로, 멤버 수를 값으로 하는 Map
+     */
+    Map<Long, Integer> countByRoomIds(List<Long> roomIds);
 }
