@@ -218,24 +218,24 @@ public class DiscussionRoomService {
 
     public void leaveRoom(Long userId, Long roomId) {
         log.info("논의방 나가기 요청 - userId: {}, roomId: {}", userId, roomId);
-        
-        // 1. Redis 퇴장 처리
+
+        // 1. 나가기 전 남은 인원 확인 (현재 사용자 포함)
+        int remainingUsers = memberRepository.countByRoomId(roomId);
+        log.debug("현재 인원 - roomId: {}, count: {}", roomId, remainingUsers);
+
+        // 2. Redis 퇴장 처리
         cacheRepository.removeUserFromRoom(userId, roomId);
         
         // 2. DB 멤버 삭제
         memberRepository.deleteByUserIdAndRoomId(userId, roomId);
-        
-        // 3. 남은 인원 확인
-        int remainingUsers = memberRepository.countByRoomId(roomId);
-        log.debug("남은 인원 - roomId: {}, count: {}", roomId, remainingUsers);
-        
-        // 4. 마지막 사람이면 방 삭제
-        if (remainingUsers == 0) {
-            log.info("마지막 멤버 퇴장 - 방 삭제 처리 - roomId: {}", roomId);
+
+        // 4. 마지막 사람이 나가면 방 삭제 (나가기 전 1명이었던 경우)
+        if (remainingUsers == 1) {
+            log.info("마지막 멤버 퇴장 - 방 삭제 처리 - roomId: {}, lastUserId: {}", roomId, userId);
             discussionRoomRepository.softDelete(roomId);
-            
-            // creatorId는 알 수 없으므로 Redis만 부분 삭제
-            cacheRepository.evictRoomCache(roomId, null);
+
+            // 마지막 사용자가 나가는 것이므로 해당 userId를 creatorId 자리에 전달
+            cacheRepository.evictRoomCache(roomId, userId);
         }
         
         log.info("논의방 나가기 성공 - userId: {}, roomId: {}", userId, roomId);
