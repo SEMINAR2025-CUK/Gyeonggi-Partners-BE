@@ -7,6 +7,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 /**
  * MemberRepository 구현체
  * 도메인 인터페이스를 JPA로 구현
@@ -42,5 +47,20 @@ public class MemberRepositoryImpl implements MemberRepository {
     @Override
     public Page<Long> findRoomIdsByUserId(Long userId, Pageable pageable) {
         return memberJpaRepository.findRoomIdsByUserIdOrderByJoinedAtDesc(userId, pageable);
+    }
+
+    @Override
+    public Map<Long, Integer> countByRoomIds(List<Long> roomIds) {
+        if (roomIds == null || roomIds.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        List<MemberJpaRepository.RoomMemberCount> counts = memberJpaRepository.countByRoomIds(roomIds);
+
+        return counts.stream()
+                .collect(Collectors.toMap(
+                        MemberJpaRepository.RoomMemberCount::getRoomId,
+                        count -> count.getCount().intValue()
+                ));
     }
 }

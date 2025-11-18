@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -30,4 +31,11 @@ public interface DiscussionRoomJpaRepository extends JpaRepository<DiscussionRoo
      */
     @Query("SELECT d FROM DiscussionRoomEntity d WHERE d.deletedAt IS NULL ORDER BY d.createdAt DESC")
     Page<DiscussionRoomEntity> findAllByDeletedAtIsNullOrderByCreatedAtDesc(Pageable pageable);
+
+    /**
+     * ID 목록으로 논의방 일괄 조회 (N+1 쿼리 방지)
+     * 삭제되지 않은 것만 조회
+     */
+    @Query("SELECT d FROM DiscussionRoomEntity d WHERE d.id IN :ids AND d.deletedAt IS NULL")
+    List<DiscussionRoomEntity> findAllByIdIn(@Param("ids") List<Long> ids);
 }

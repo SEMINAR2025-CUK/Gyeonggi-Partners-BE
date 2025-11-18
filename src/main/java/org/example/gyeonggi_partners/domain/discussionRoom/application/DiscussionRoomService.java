@@ -22,13 +22,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class DiscussionRoomService {
 
     private final DiscussionRoomRepository discussionRoomRepository;
@@ -44,6 +43,7 @@ public class DiscussionRoomService {
      * @param userId 생성자 ID (현재 로그인한 사용자)
      * @return 생성된 논의방 정보 (입장 완료 상태)
      */
+    @Transactional
     public JoinRoomRes createRoom(CreateDiscussionRoomReq request, Long userId) {
         log.info("논의방 생성 요청 - userId: {}, title: {}", userId, request.getTitle());
         
@@ -84,6 +84,7 @@ public class DiscussionRoomService {
         return JoinRoomRes.of(model, memberNicknames);
     }
 
+    @Transactional
     public JoinRoomRes joinRoom(Long userId, Long roomId) {
         log.info("논의방 입장 요청 - userId: {}, roomId: {}", userId, roomId);
 
@@ -141,14 +142,21 @@ public class DiscussionRoomService {
             return DiscussionRoomListRes.of(List.of(), page, size, 0);
         }
 
-        // 2. 각 방 상세 정보 조회 (캐시 활용)
+        // 2. 각 방 상세 정보 조회 (N+1 쿼리 방지: 멤버 수 일괄 조회)
         List<DiscussionRoom> rooms = roomPage.getContent();
+        List<Long> roomIds = rooms.stream()
+                .map(DiscussionRoom::getId)
+                .collect(Collectors.toList());
+
+        // 멤버 수 일괄 조회 (N+1 방지)
+        Map<Long, Integer> memberCountMap = memberRepository.countByRoomIds(roomIds);
+
         List<DiscussionRoomInfo> roomSummaries = rooms.stream()
                 .map(room -> {
                     // retrieveCachingRoom: 캐시 미스 시 DB 조회 후 캐싱
                     DiscussionRoomCacheModel cached = cacheRepository.retrieveCachingRoom(room.getId())
                             .orElseGet(() -> {
-                                int currentUsers = memberRepository.countByRoomId(room.getId());
+                                int currentUsers = memberCountMap.getOrDefault(room.getId(), 0);
                                 return DiscussionRoomCacheModel.fromDomainModel(room, currentUsers);
                             });
                     return DiscussionRoomInfo.from(cached);
@@ -188,17 +196,19 @@ public class DiscussionRoomService {
             return DiscussionRoomListRes.of(List.of(), page, size, 0);
         }
 
-        // 2. 각 방 상세 정보 조회 (캐시 활용)
+        // 2. 각 방 상세 정보 조회 (N+1 쿼리 방지: 일괄 조회)
         List<Long> roomIds = roomIdPage.getContent();
-        List<DiscussionRoomInfo> roomSummaries = roomIds.stream()
-                .map(roomId -> discussionRoomRepository.findById(roomId))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+        List<DiscussionRoom> rooms = discussionRoomRepository.findAllByIdIn(roomIds);
+
+        // 멤버 수 일괄 조회 (N+1 방지)
+        Map<Long, Integer> memberCountMap = memberRepository.countByRoomIds(roomIds);
+
+        List<DiscussionRoomInfo> roomSummaries = rooms.stream()
                 .map(room -> {
                     // retrieveCachingRoom: 캐시 미스 시 DB 조회 후 캐싱
                     DiscussionRoomCacheModel cached = cacheRepository.retrieveCachingRoom(room.getId())
                             .orElseGet(() -> {
-                                int currentUsers = memberRepository.countByRoomId(room.getId());
+                                int currentUsers = memberCountMap.getOrDefault(room.getId(), 0);
                                 return DiscussionRoomCacheModel.fromDomainModel(room, currentUsers);
                             });
                     return DiscussionRoomInfo.from(cached);
@@ -216,26 +226,27 @@ public class DiscussionRoomService {
         );
     }
 
+    @Transactional
     public void leaveRoom(Long userId, Long roomId) {
         log.info("논의방 나가기 요청 - userId: {}, roomId: {}", userId, roomId);
-        
-        // 1. Redis 퇴장 처리
+
+        // 1. 나가기 전 남은 인원 확인 (현재 사용자 포함)
+        int remainingUsers = memberRepository.countByRoomId(roomId);
+        log.debug("현재 인원 - roomId: {}, count: {}", roomId, remainingUsers);
+
+        // 2. Redis 퇴장 처리
         cacheRepository.removeUserFromRoom(userId, roomId);
         
         // 2. DB 멤버 삭제
         memberRepository.deleteByUserIdAndRoomId(userId, roomId);
-        
-        // 3. 남은 인원 확인
-        int remainingUsers = memberRepository.countByRoomId(roomId);
-        log.debug("남은 인원 - roomId: {}, count: {}", roomId, remainingUsers);
-        
-        // 4. 마지막 사람이면 방 삭제
-        if (remainingUsers == 0) {
-            log.info("마지막 멤버 퇴장 - 방 삭제 처리 - roomId: {}", roomId);
+
+        // 4. 마지막 사람이 나가면 방 삭제 (나가기 전 1명이었던 경우)
+        if (remainingUsers == 1) {
+            log.info("마지막 멤버 퇴장 - 방 삭제 처리 - roomId: {}, lastUserId: {}", roomId, userId);
             discussionRoomRepository.softDelete(roomId);
-            
-            // creatorId는 알 수 없으므로 Redis만 부분 삭제
-            cacheRepository.evictRoomCache(roomId, null);
+
+            // 마지막 사용자가 나가는 것이므로 해당 userId를 creatorId 자리에 전달
+            cacheRepository.evictRoomCache(roomId, userId);
         }
         
         log.info("논의방 나가기 성공 - userId: {}, roomId: {}", userId, roomId);

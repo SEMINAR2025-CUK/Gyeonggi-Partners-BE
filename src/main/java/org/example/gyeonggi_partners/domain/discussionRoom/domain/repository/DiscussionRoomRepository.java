@@ -40,4 +40,11 @@ public interface DiscussionRoomRepository {
      * @return 페이징된 논의방 목록
      */
     Page<DiscussionRoom> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    /**
+     * ID 목록으로 논의방 일괄 조회 (N+1 쿼리 방지)
+     * @param ids 논의방 ID 목록
+     * @return 논의방 목록
+     */
+    List<DiscussionRoom> findAllByIdIn(List<Long> ids);
 }

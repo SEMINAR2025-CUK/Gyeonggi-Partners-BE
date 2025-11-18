@@ -53,6 +53,10 @@ public class DiscussionRoomEntity extends BaseEntity {
     // DB에 DEFAULT 1이 설정되어 있지만, Entity에도 초기값 1을 명시하는 것이 안전합니다.
     private Integer memberCount = 1;
 
+    @Version
+    @Column(name = "version")
+    private Long version;
+
     @OneToMany(mappedBy = "discussionRoom", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MemberEntity> members = new ArrayList<>();
 
