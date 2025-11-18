@@ -188,12 +188,15 @@ public class DiscussionRoomService {
             return DiscussionRoomListRes.of(List.of(), page, size, 0);
         }
 
-        // 2. 각 방 상세 정보 조회 (캐시 활용)
+        // 2. 각 방 상세 정보 조회 (N+1 쿼리 방지: 일괄 조회)
         List<Long> roomIds = roomIdPage.getContent();
         List<DiscussionRoomInfo> roomSummaries = roomIds.stream()
                 .map(roomId -> discussionRoomRepository.findById(roomId))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
+        List<DiscussionRoom> rooms = discussionRoomRepository.findAllByIdIn(roomIds);
+
+        List<DiscussionRoomInfo> roomSummaries = rooms.stream()
                 .map(room -> {
                     // retrieveCachingRoom: 캐시 미스 시 DB 조회 후 캐싱
                     DiscussionRoomCacheModel cached = cacheRepository.retrieveCachingRoom(room.getId())

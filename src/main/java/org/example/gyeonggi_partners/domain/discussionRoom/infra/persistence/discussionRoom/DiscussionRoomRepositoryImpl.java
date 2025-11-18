@@ -7,7 +7,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * DiscussionRoomRepository 구현체
@@ -43,5 +45,15 @@ public class DiscussionRoomRepositoryImpl implements DiscussionRoomRepository {
         Page<DiscussionRoomEntity> entityPage = discussionRoomJpaRepository
                 .findAllByDeletedAtIsNullOrderByCreatedAtDesc(pageable);
         return entityPage.map(DiscussionRoomEntity::toDomain);
+    }
+
+    @Override
+    public List<DiscussionRoom> findAllByIdIn(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return discussionRoomJpaRepository.findAllByIdIn(ids).stream()
+                .map(DiscussionRoomEntity::toDomain)
+                .collect(Collectors.toList());
     }
 }
