@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class DiscussionRoomService {
 
     private final DiscussionRoomRepository discussionRoomRepository;
@@ -44,6 +43,7 @@ public class DiscussionRoomService {
      * @param userId 생성자 ID (현재 로그인한 사용자)
      * @return 생성된 논의방 정보 (입장 완료 상태)
      */
+    @Transactional
     public JoinRoomRes createRoom(CreateDiscussionRoomReq request, Long userId) {
         log.info("논의방 생성 요청 - userId: {}, title: {}", userId, request.getTitle());
         
@@ -84,6 +84,7 @@ public class DiscussionRoomService {
         return JoinRoomRes.of(model, memberNicknames);
     }
 
+    @Transactional
     public JoinRoomRes joinRoom(Long userId, Long roomId) {
         log.info("논의방 입장 요청 - userId: {}, roomId: {}", userId, roomId);
 
@@ -225,6 +226,7 @@ public class DiscussionRoomService {
         );
     }
 
+    @Transactional
     public void leaveRoom(Long userId, Long roomId) {
         log.info("논의방 나가기 요청 - userId: {}, roomId: {}", userId, roomId);
 
