@@ -230,25 +230,34 @@ public class DiscussionRoomService {
     public void leaveRoom(Long userId, Long roomId) {
         log.info("논의방 나가기 요청 - userId: {}, roomId: {}", userId, roomId);
 
-        // 1. 나가기 전 남은 인원 확인 (현재 사용자 포함)
+        // 1. 비관적 락으로 방 조회 (다른 트랜잭션 대기)
+        DiscussionRoom room = discussionRoomRepository.findByIdWithLock(roomId)
+                .orElseThrow(() -> new BusinessException(DiscussionRoomErrorCode.ROOM_NOT_FOUND));
+        log.debug("방 잠금 획득 - roomId: {}", roomId);
+
+        // 2. 사용자가 실제로 멤버인지 확인
+        if (!memberRepository.existsByUserIdAndRoomId(userId, roomId)) {
+            throw new BusinessException(DiscussionRoomErrorCode.NOT_A_ROOM_MEMBER);
+        }
+
+        // 3. 삭제 전 남은 인원 확인 (현재 사용자 포함)
         int remainingUsers = memberRepository.countByRoomId(roomId);
-        log.debug("현재 인원 - roomId: {}, count: {}", roomId, remainingUsers);
+        log.debug("삭제 전 인원 - roomId: {}, count: {}", roomId, remainingUsers);
 
-        // 2. Redis 퇴장 처리
+        // 4. Redis 퇴장 처리
         cacheRepository.removeUserFromRoom(userId, roomId);
-        
-        // 2. DB 멤버 삭제
-        memberRepository.deleteByUserIdAndRoomId(userId, roomId);
 
-        // 4. 마지막 사람이 나가면 방 삭제 (나가기 전 1명이었던 경우)
+        // 5. DB 멤버 삭제
+        memberRepository.deleteByUserIdAndRoomId(userId, roomId);
+        log.debug("멤버 삭제 완료 - userId: {}, roomId: {}", userId, roomId);
+
+        // 6. 마지막 사람이 나가면 방 삭제 (삭제 전 1명이었던 경우)
         if (remainingUsers == 1) {
             log.info("마지막 멤버 퇴장 - 방 삭제 처리 - roomId: {}, lastUserId: {}", roomId, userId);
             discussionRoomRepository.softDelete(roomId);
-
-            // 마지막 사용자가 나가는 것이므로 해당 userId를 creatorId 자리에 전달
             cacheRepository.evictRoomCache(roomId, userId);
         }
-        
+
         log.info("논의방 나가기 성공 - userId: {}, roomId: {}", userId, roomId);
     }
 

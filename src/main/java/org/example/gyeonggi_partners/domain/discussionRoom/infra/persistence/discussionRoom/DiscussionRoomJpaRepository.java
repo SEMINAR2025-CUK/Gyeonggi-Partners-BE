@@ -1,8 +1,10 @@
 package org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.discussionRoom;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -38,4 +40,13 @@ public interface DiscussionRoomJpaRepository extends JpaRepository<DiscussionRoo
      */
     @Query("SELECT d FROM DiscussionRoomEntity d WHERE d.id IN :ids AND d.deletedAt IS NULL")
     List<DiscussionRoomEntity> findAllByIdIn(@Param("ids") List<Long> ids);
+
+    /**
+     * 논의방 ID로 조회 (비관적 락)
+     * SELECT FOR UPDATE를 사용하여 동시성 제어
+     * 다른 트랜잭션의 읽기/쓰기를 차단하고 배타적 잠금 획득
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT d FROM DiscussionRoomEntity d WHERE d.id = :roomId AND d.deletedAt IS NULL")
+    Optional<DiscussionRoomEntity> findByIdWithLock(@Param("roomId") Long roomId);
 }

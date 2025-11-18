@@ -6,8 +6,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.gyeonggi_partners.domain.discussionRoom.domain.model.Member;
-import org.example.gyeonggi_partners.domain.discussionRoom.infra.persistence.discussionRoom.DiscussionRoomEntity;
-import org.example.gyeonggi_partners.domain.user.infra.persistence.UserEntity;
 
 import java.time.LocalDateTime;
 
@@ -43,14 +41,6 @@ public class MemberEntity {
         this.roomId = roomId;
         this.createdAt = createdAt;
     }
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, insertable = false, updatable = false)
-    private UserEntity user;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_id", nullable = false, insertable = false, updatable = false)
-    private DiscussionRoomEntity discussionRoom;
 
     /**
      * 도메인 모델을 엔티티로 변환 (Domain -> Entity)
