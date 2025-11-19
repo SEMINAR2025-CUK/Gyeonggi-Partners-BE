@@ -14,10 +14,6 @@ public interface ProposalRepository {
 
     List<Proposal> findVotingProposalsWithExpiredDeadline(LocalDateTime now);
 
-    boolean existsMemberInRoom(Long userId, Long roomId);
-
-
-
     List<Proposal> findByRoomId(Long roomId);
 
     int countByRoomId(Long roomId);
