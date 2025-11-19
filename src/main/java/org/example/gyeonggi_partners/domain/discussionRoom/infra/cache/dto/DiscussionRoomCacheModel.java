@@ -68,7 +68,6 @@ public class DiscussionRoomCacheModel {
                 this.description,
                 this.region,
                 this.accessLevel,
-                this.currentUsers,
                 this.createdAt,
                 null,  // updatedAt은 캐시에 없음
                 null   // deletedAt은 캐시에 없음
