@@ -2,8 +2,17 @@ plugins {
     java
     id("org.springframework.boot") version "3.5.6"
     id("io.spring.dependency-management") version "1.1.7"
-}
+    id("org.sonarqube") version "6.0.1.5171"
 
+}
+sonar {
+    properties {
+        property("sonar.projectKey", "gyeonggi-partners")
+        property("sonar.projectName", "Gyeonggi Partners")
+        property("sonar.host.url", "http://localhost:9000")
+        property("sonar.token", System.getenv("SONAR_TOKEN") ?: "")
+    }
+}
 group = "org.example"
 version = "0.0.1-SNAPSHOT"
 description = "gyeonggi_partners"
