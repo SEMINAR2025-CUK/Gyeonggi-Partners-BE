@@ -38,11 +38,6 @@ public class ProposalRepositoryImpl implements ProposalRepository {
     }
 
     @Override
-    public boolean existsMemberInRoom(Long memberId, Long roomId) {
-        return proposalJpaRepository.existsMemberInRoom(memberId, roomId);
-    }
-
-    @Override
     public List<Proposal> findByRoomId(Long roomId) {
         return proposalJpaRepository.findByRoomId(roomId).stream()
                 .map(ProposalEntity::toDomain)
