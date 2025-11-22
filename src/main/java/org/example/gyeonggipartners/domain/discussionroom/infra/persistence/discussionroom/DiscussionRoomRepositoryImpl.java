@@ -1,4 +1,4 @@
-package org.example.gyeonggipartners.domain.discussionroom.infra.persistence.discussionRoom;
+package org.example.gyeonggipartners.domain.discussionroom.infra.persistence.discussionroom;
 
 import lombok.RequiredArgsConstructor;
 import org.example.gyeonggipartners.domain.discussionroom.domain.model.DiscussionRoom;
@@ -54,7 +54,7 @@ public class DiscussionRoomRepositoryImpl implements DiscussionRoomRepository {
         }
         return discussionRoomJpaRepository.findAllByIdIn(ids).stream()
                 .map(DiscussionRoomEntity::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

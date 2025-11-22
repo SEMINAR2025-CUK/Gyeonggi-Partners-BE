@@ -1,4 +1,4 @@
-package org.example.gyeonggipartners.domain.discussionroom.infra.persistence.discussionRoom;
+package org.example.gyeonggipartners.domain.discussionroom.infra.persistence.discussionroom;
 
 
 import jakarta.persistence.*;
