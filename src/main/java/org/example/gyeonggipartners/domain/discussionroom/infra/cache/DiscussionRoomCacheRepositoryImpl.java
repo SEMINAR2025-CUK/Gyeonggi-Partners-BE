@@ -14,7 +14,6 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 논의방 Redis 캐시 Repository 구현체
@@ -127,7 +126,7 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
             
             List<Long> roomIds = roomIdsSet.stream()
                     .map(obj -> Long.valueOf(obj.toString()))
-                    .collect(Collectors.toList());
+                    .toList();
             
             log.debug("전체 목록 조회 - page:{}, size:{}, total:{}, found:{}", 
                     page, size, totalCount, roomIds.size());
@@ -178,7 +177,7 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
             
             List<Long> roomIds = roomIdsSet.stream()
                     .map(obj -> Long.valueOf(obj.toString()))
-                    .collect(Collectors.toList());
+                    .toList();
             
             log.debug("사용자 참여 방 조회 - user:{}, page:{}, size:{}, total:{}, found:{}", 
                     userId, page, size, totalCount, roomIds.size());
@@ -394,7 +393,7 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
             
             List<Long> memberIds = members.stream()
                     .map(obj -> Long.valueOf(obj.toString()))
-                    .collect(Collectors.toList());
+                    .toList();
             
             log.debug("멤버 목록 조회 - room:{}, count:{}", roomId, memberIds.size());
             return memberIds;

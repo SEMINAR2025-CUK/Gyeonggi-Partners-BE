@@ -61,7 +61,7 @@ public class DiscussionRoomCacheModel {
      * 
      * @return 논의방 도메인 모델
      */
-    public DiscussionRoom ToDomainModel() {
+    public DiscussionRoom toDomainModel() {
         return DiscussionRoom.restore(
                 this.id,
                 this.title,

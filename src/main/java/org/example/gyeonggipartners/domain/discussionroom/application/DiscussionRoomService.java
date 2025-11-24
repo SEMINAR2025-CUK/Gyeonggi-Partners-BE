@@ -145,7 +145,7 @@ public class DiscussionRoomService {
         List<DiscussionRoom> rooms = roomPage.getContent();
         List<Long> roomIds = rooms.stream()
                 .map(DiscussionRoom::getId)
-                .collect(Collectors.toList());
+                .toList();
 
         // 멤버 수 일괄 조회 (N+1 방지)
         Map<Long, Integer> memberCountMap = memberRepository.countByRoomIds(roomIds);
@@ -160,7 +160,7 @@ public class DiscussionRoomService {
                             });
                     return DiscussionRoomInfo.from(cached);
                 })
-                .collect(Collectors.toList());
+                .toList();
 
         log.info("전체 논의방 목록 조회 성공 - 조회된 방: {}개, 전체: {}개",
                 roomSummaries.size(), roomPage.getTotalElements());
@@ -212,7 +212,7 @@ public class DiscussionRoomService {
                             });
                     return DiscussionRoomInfo.from(cached);
                 })
-                .collect(Collectors.toList());
+                .toList();
 
         log.info("내가 참여한 논의방 목록 조회 성공 - userId: {}, 조회된 방: {}개, 전체: {}개",
                 userId, roomSummaries.size(), roomIdPage.getTotalElements());
@@ -230,7 +230,7 @@ public class DiscussionRoomService {
         log.info("논의방 나가기 요청 - userId: {}, roomId: {}", userId, roomId);
 
         // 1. 비관적 락으로 방 조회 (다른 트랜잭션 대기)
-        DiscussionRoom room = discussionRoomRepository.findByIdWithLock(roomId)
+        discussionRoomRepository.findByIdWithLock(roomId)
                 .orElseThrow(() -> new BusinessException(DiscussionRoomErrorCode.ROOM_NOT_FOUND));
         log.debug("방 잠금 획득 - roomId: {}", roomId);
 
