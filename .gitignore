@@ -64,3 +64,8 @@ postgres-data/
 redis-data/
 docker-compose.override.yml
 .env
+
+# SonarQube
+sonarqube-data/
+sonarqube-logs/
+sonarqube-extensions/
