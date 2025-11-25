@@ -8,12 +8,16 @@ package org.example.gyeonggipartners.domain.discussionroom.infra.cache;
  * <p>모든 Redis Key는 이 클래스를 통해 생성하여 일관성 보장</p>
  */
 public class RedisKeyGenerator {
-    
+
     // Key 패턴 상수
-    private static final String ROOM_INFO_KEY = "room:%d";                    // room:{id}
-    private static final String ROOM_MEMBERS_KEY = "room:%d:members";           // room:{id}:members
-    private static final String RECENT_ROOMS_KEY = "list:latest";                // list:latest
-    private static final String USER_ROOMS_KEY = "user:%d:joined";             // user:{id}:joined
+    private static final String ROOM_INFO_KEY = "room:%d";
+    private static final String ROOM_MEMBERS_KEY = "room:%d:members";
+    private static final String RECENT_ROOMS_KEY = "list:latest";
+    private static final String USER_ROOMS_KEY = "user:%d:joined";
+
+    private RedisKeyGenerator() {
+        throw new IllegalStateException("Utility class");
+    }
     
     /**
      * 논의방 상세 정보 Key 생성
