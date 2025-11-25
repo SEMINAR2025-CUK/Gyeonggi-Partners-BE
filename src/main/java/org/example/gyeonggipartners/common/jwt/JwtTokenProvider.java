@@ -24,6 +24,7 @@ public class JwtTokenProvider {
 
     private static final String AUTHORITIES_KEY = "role";
     private static final String BEARER_TYPE = "Bearer";
+    private static final String USER_ID_KEY = "userId";
 
     private final Key key;
     private final JwtProperties jwtProperties;
@@ -51,10 +52,11 @@ public class JwtTokenProvider {
 
         // Access Token 생성 (userId 포함!)
         Date accessTokenExpiresIn = new Date(now + jwtProperties.getAccessTokenExpiration());
+
         String accessToken = Jwts.builder()
                 .subject(authentication.getName())
                 .claim(AUTHORITIES_KEY, authorities)
-                .claim("userId", userDetails.getUserId())  // userId 추가!
+                .claim(USER_ID_KEY, userDetails.getUserId())  // userId 추가!
                 .expiration(accessTokenExpiresIn)
                 .signWith(key)
                 .compact();
@@ -95,7 +97,7 @@ public class JwtTokenProvider {
                         .toList();
 
         // JWT에서 userId 추출
-        Long userId = claims.get("userId", Long.class);
+        Long userId = claims.get(USER_ID_KEY, Long.class);
         
         // CustomUserDetails 객체 생성
         // nickname, email, role은 JWT에 없으므로 null 또는 기본값
@@ -169,7 +171,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .subject(authentication.getName())
                 .claim(AUTHORITIES_KEY, authorities)
-                .claim("userId", userDetails.getUserId())
+                .claim(USER_ID_KEY, userDetails.getUserId())
                 .expiration(accessTokenExpiresIn)
                 .signWith(key)
                 .compact();
