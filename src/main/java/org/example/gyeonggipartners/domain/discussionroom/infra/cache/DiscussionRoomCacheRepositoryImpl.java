@@ -69,11 +69,11 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
                     operations.expire(roomInfoKey, TTL_ROOM_INFO);
                     
                     // 2. list:latest ZSet 업데이트 (결정사항 2-2: 최신순)
-                    operations.opsForZSet().add(recentRoomsKey, cachedRoom.getId(), (double) timestamp);
+                    operations.opsForZSet().add(recentRoomsKey, cachedRoom.getId(),timestamp);
                     operations.expire(recentRoomsKey, TTL_RECENT_ROOMS);
                     
                     // 3. user:{creatorId}:joined ZSet 업데이트
-                    operations.opsForZSet().add(userRoomsKey, cachedRoom.getId(), (double) timestamp);
+                    operations.opsForZSet().add(userRoomsKey, cachedRoom.getId(), timestamp);
                     operations.expire(userRoomsKey, TTL_USER_ROOM);
                     
                     return operations.exec();
@@ -213,7 +213,7 @@ public class DiscussionRoomCacheRepositoryImpl implements DiscussionRoomCacheRep
                     operations.multi();
                     
                     // 1. user:{userId}:joined ZSet에 추가
-                    operations.opsForZSet().add(userJoinedKey, roomId, (double) timestamp);
+                    operations.opsForZSet().add(userJoinedKey, roomId, timestamp);
                     operations.expire(userJoinedKey, TTL_USER_ROOM);
                     
                     // 2. room:{roomId}:members List에 추가 (결정사항 6-1: List 사용)
