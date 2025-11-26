@@ -38,6 +38,38 @@ public class Proposal {
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
 
+
+
+    /**
+     * 기존 제안서 복원 (DB에서 조회용 Factory Method)
+     */
+    public static Proposal restore(Long id, Long roomId, Long lastModifierId,
+                                   String title, String problemOverview, String solution,
+                                   List<Evidence> evidences, Integer requiredConsents,
+                                   LocalDateTime consentDeadline, ProposalStatus status,
+                                   Long lockedBy, LocalDateTime lockedAt,
+                                   LocalDateTime createdAt, LocalDateTime updatedAt,
+                                   LocalDateTime deletedAt) {
+        return Proposal.builder()
+                .id(id)
+                .roomId(roomId)
+                .lastModifierId(lastModifierId)
+                .title(title)
+                .problemOverview(problemOverview)
+                .solution(solution)
+                .evidences(evidences != null ? evidences : new ArrayList<>())
+                .requiredConsents(requiredConsents)
+                .consentDeadline(consentDeadline)
+                .status(status)
+                .lockedBy(lockedBy)
+                .lockedAt(lockedAt)
+                .createdAt(createdAt)
+                .updatedAt(updatedAt)
+                .deletedAt(deletedAt)
+                .build();
+    }
+
+
     // =================================================================
     // 1. [생성] Create Phase
     // =================================================================
