@@ -6,7 +6,7 @@ import lombok.Getter;
 public class BusinessException extends RuntimeException {
 
     @Getter
-    private final ErrorCode errorCode;
+    private final transient ErrorCode errorCode;
 
     public BusinessException(ErrorCode errorCode) {
         super(errorCode.getMessage());

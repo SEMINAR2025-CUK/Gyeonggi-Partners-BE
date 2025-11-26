@@ -16,11 +16,11 @@ public class GlobalExceptionHandler {
      * 우리가 직접 정의한 BusinessException을 처리합니다.
      */
     @ExceptionHandler(BusinessException.class)
-    protected ResponseEntity<ApiResponse<?>> handleBusinessException(final BusinessException e) {
+    protected ResponseEntity<ApiResponse<ErrorCode>> handleBusinessException(final BusinessException e) {
         final ErrorCode errorCode = e.getErrorCode();
         log.error("handleBusinessException : {}", errorCode.getMessage());
 
-        final ApiResponse<?> response = ApiResponse.error(errorCode);
+        final ApiResponse<ErrorCode> response = ApiResponse.error(errorCode);
 
         return new ResponseEntity<>(response, HttpStatus.valueOf(errorCode.getStatus()));
     }
