@@ -26,6 +26,7 @@ public class ProposalEntity extends BaseEntity {
     @Column(name = "proposal_id")
     private Long id;
 
+    @Setter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id", nullable = false)
     private DiscussionRoomEntity room;

@@ -1,6 +1,8 @@
 package org.example.gyeonggipartners.domain.proposal.infra.persistence;
 
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.example.gyeonggipartners.domain.discussionroom.infra.persistence.discussionroom.DiscussionRoomEntity;
 import org.example.gyeonggipartners.domain.proposal.domain.model.Proposal;
 import org.example.gyeonggipartners.domain.proposal.domain.repository.ProposalRepository;
 import org.springframework.stereotype.Repository;
@@ -14,10 +16,14 @@ import java.util.Optional;
 public class ProposalRepositoryImpl implements ProposalRepository {
 
     private final ProposalJpaRepository proposalJpaRepository;
+    private final EntityManager entityManager; // [추가] 프록시 객체 조회를 위해 필요
 
     @Override
     public Proposal save(Proposal proposal) {
         ProposalEntity entity = ProposalEntity.fromDomain(proposal);
+        DiscussionRoomEntity roomRef = entityManager.getReference(DiscussionRoomEntity.class, proposal.getRoomId());
+        entity.setRoom(roomRef);
+
         ProposalEntity savedEntity = proposalJpaRepository.save(entity);
         return savedEntity.toDomain();
     }
