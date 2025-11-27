@@ -1,5 +1,6 @@
 package org.example.gyeonggipartners.domain.user.domain.repository;
 
+import io.lettuce.core.ScanIterator;
 import org.example.gyeonggipartners.domain.user.domain.model.User;
 
 import java.util.List;
@@ -64,5 +65,11 @@ public interface UserRepository {
      */
     List<String> findNicknamesByIds(List<Long> ids);
 
+    /**
+     * 다수의 사용자 ID로 사용자 목록을 일괄 조회합니다. (N+1 문제 해결용)
+     * @param ids 조회할 사용자 ID 목록
+     * @return 사용자 도메인 객체 목록
+     */
+    List<User> findAllById(List<Long> ids);
 
 }
