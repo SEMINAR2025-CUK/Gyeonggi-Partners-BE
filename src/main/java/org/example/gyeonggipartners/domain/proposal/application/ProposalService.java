@@ -122,6 +122,7 @@ public class ProposalService {
 
         validateRoomMember(proposal.getRoomId(), userId);
 
+        validateEditableStatus(proposal);
         // 2. 도메인 로직: 상태 전환 (SAVING -> DRAFTING), 락 획득, 수정자 갱신
         try {
             proposal.startEditing(userId);
@@ -270,6 +271,26 @@ public class ProposalService {
     private void validateProposalCountLimit(Long roomId) {
         if (proposalRepository.countByRoomId(roomId) >= MAX_PROPOSAL_LIMIT) {
             throw new BusinessException(ProposalErrorCode.PROPOSAL_LIMIT_EXCEEDED);
+        }
+    }
+
+    private void validateEditableStatus(Proposal proposal) {
+        switch (proposal.getStatus()) {
+            case DRAFTING:
+                throw new BusinessException(ProposalErrorCode.PROPOSAL_BEING_EDITED);
+            case VOTING:
+                throw new BusinessException(ProposalErrorCode.CANNOT_EDIT_IN_VOTING);
+            case COMPLETED:
+                throw new BusinessException(ProposalErrorCode.CANNOT_EDIT_COMPLETED);
+            case READY_TO_SUBMIT:
+                throw new BusinessException(ProposalErrorCode.CANNOT_EDIT_READY_TO_SUBMIT);
+            case SUBMITTED:
+                throw new BusinessException(ProposalErrorCode.CANNOT_EDIT_SUBMITTED);
+            case SAVING:
+                // 정상 진입 가능 상태
+                break;
+            default:
+                throw new BusinessException(ProposalErrorCode.UNAUTHORIZED_ACCESS);
         }
     }
 

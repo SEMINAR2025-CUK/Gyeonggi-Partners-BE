@@ -16,6 +16,12 @@ public enum ProposalErrorCode implements ErrorCode {
     NOT_LOCK_OWNER(403, "P004", "편집 권한이 없습니다. (락 소유자가 아님)"), // 저장/완료 시도 시
     LOCK_EXPIRED(403, "P005", "편집 세션이 만료되었습니다. 다시 시도해주세요."),
 
+    //상태별 수정 불가 에러
+    CANNOT_EDIT_IN_VOTING(400, "P020", "현재 투표 진행 중이라 수정할 수 없습니다."),       // VOTING
+    CANNOT_EDIT_COMPLETED(400, "P021", "확정된 제안서는 수정할 수 없습니다."),               // COMPLETED
+    CANNOT_EDIT_READY_TO_SUBMIT(400, "P022", "제출 대기(제출 직전) 상태라 수정할 수 없습니다."), // READY_TO_SUBMIT
+    CANNOT_EDIT_SUBMITTED(400, "P023", "이미 제출된 제안서는 수정할 수 없습니다."),
+
     // 상태 관련
     NOT_IN_DRAFTING(400, "P006", "작성 중인 상태가 아닙니다."),
     NOT_IN_VOTING(400, "P009", "투표 중인 제안서가 아닙니다."),
