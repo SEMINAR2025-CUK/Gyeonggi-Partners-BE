@@ -103,7 +103,7 @@ public class ProposalService {
             throw new BusinessException(ProposalErrorCode.NOT_LOCK_OWNER);
         }
 
-        return ProposalResponse.from(proposal);
+        return ProposalResponse.from(proposalRepository.save(proposal));
     }
 
     // =================================================================
@@ -130,7 +130,7 @@ public class ProposalService {
             throw new BusinessException(ProposalErrorCode.PROPOSAL_BEING_EDITED);
         }
 
-        return ProposalResponse.from(proposal);
+        return ProposalResponse.from(proposalRepository.save(proposal));
     }
 
     // =================================================================
@@ -151,6 +151,8 @@ public class ProposalService {
         } catch (IllegalStateException e) {
             throw new BusinessException(ProposalErrorCode.NOT_LOCK_OWNER);
         }
+        
+        proposalRepository.save(proposal);
     }
 
     /**
@@ -167,7 +169,7 @@ public class ProposalService {
             throw new BusinessException(ProposalErrorCode.ALREADY_VOTING);
         }
 
-        return ProposalResponse.from(proposal);
+        return ProposalResponse.from(proposalRepository.save(proposal));
     }
 
     // =================================================================
@@ -198,6 +200,7 @@ public class ProposalService {
 
         try {
             proposal.finishVoting(currentConsentCount);
+            proposalRepository.save(proposal);
             // 상태가 READY_TO_SUBMIT으로 바뀌었다면, 트랜잭션 종료 시 반영됨
         } catch (IllegalStateException e) {
             // 아직 조건 미충족 시 예외가 발생할 수 있으나, 정상 흐름이므로 무시하고 진행
