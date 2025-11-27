@@ -108,7 +108,9 @@ public class Proposal {
      * - 시나리오: B가 SAVING 상태의 제안서에 접근 -> DRAFTING 전환, 수정자 B로 갱신
      */
     public void startEditing(Long userId) {
-
+        if (this.status != ProposalStatus.SAVING) {
+            throw new IllegalStateException("작성 중(임시저장)인 제안서만 편집할 수 있습니다.");
+        }
         // 1. 접근 가능 여부 검증 (이미 누가 쓰고 있는지, 만료된 락인지 등)
         validateAcquirableLock(userId);
 
