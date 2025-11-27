@@ -2,42 +2,29 @@ package org.example.gyeonggipartners.domain.proposal.application;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.gyeonggipartners.domain.proposal.domain.model.Proposal;
-import org.example.gyeonggipartners.domain.proposal.domain.repository.ProposalRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
-@Slf4j
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class ProposalVotingScheduler {
 
-    private final ProposalRepository proposalRepository;
+    private final ProposalService proposalService;
 
     /**
-     * 매 시간마다 투표 기간 만료된 제안서 확인
+     * 매 10분마다 투표 마감 기한이 지난 제안서를 확인하여 종료 처리
+     * (cron 주기 등은 운영 정책에 따라 변경)
      */
-    @Scheduled(cron = "0 0 * * * *")
-    @Transactional
-    public void checkExpiredVoting() {
-        log.info("투표기간 만료된 제안서 체크 시작");
-
-        List<Proposal> expiredProposals = proposalRepository.findVotingProposalsWithExpiredDeadline(LocalDateTime.now());
-
-        for(Proposal proposal : expiredProposals) {
-            try {
-                proposal.endVoting();
-                proposalRepository.save(proposal);
-                log.info("제안서 {} 투표 자동 죵로 완료 (동의자 수 : {})", proposal.getId(), proposal.getConsents().size());
-            } catch (Exception e) {
-                log.info("제안서 {} 투표 종료 실패: {}", proposal.getId(), e.getMessage());
+    @Scheduled(cron = "0 0/10 * * * *")
+    public void checkDeadline() {
+        try {
+            int closedCount = proposalService.closeExpiredProposals();
+            if (closedCount > 0) {
+                log.info("[Scheduler] {}개의 만료된 제안서를 투표 종료(제출 대기) 처리했습니다.", closedCount);
             }
+        } catch (Exception e) {
+            log.error("[Scheduler] 제안서 투표 마감 배치 작업 중 오류 발생", e);
         }
-
-        log.info("투표기간 만료된 제안서 체크 완료");
     }
 }
