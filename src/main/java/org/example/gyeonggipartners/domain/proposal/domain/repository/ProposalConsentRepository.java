@@ -16,11 +16,6 @@ public interface ProposalConsentRepository {
     void save(ProposalConsent consent);
 
     /**
-     * 동의 취소 (복합키로 삭제)
-     */
-    void deleteByProposalIdAndUserId(Long proposalId, Long userId);
-
-    /**
      * 중복 동의 체크
      */
     boolean existsByProposalIdAndUserId(Long proposalId, Long userId);
