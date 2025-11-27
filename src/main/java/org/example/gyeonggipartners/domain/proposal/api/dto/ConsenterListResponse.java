@@ -3,29 +3,21 @@ package org.example.gyeonggipartners.domain.proposal.api.dto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import org.example.gyeonggipartners.domain.proposal.domain.model.Proposal;
 
 import java.util.List;
 
 @Getter
-@AllArgsConstructor
 @Builder
+@AllArgsConstructor
 public class ConsenterListResponse {
 
-    private int totalConsents;
+    private int totalCount;
     private List<ConsenterDto> consenters;
 
-    public static ConsenterListResponse from(Proposal proposal) {
-        List<ConsenterDto> consenterDtos = proposal.getConsents() != null
-                ? proposal.getConsents().stream()
-                .map(ConsenterDto::from)
-                .toList()
-                : List.of();
-
+    public static ConsenterListResponse of(List<ConsenterDto> consenters) {
         return ConsenterListResponse.builder()
-                .totalConsents(consenterDtos.size())
-                .consenters(consenterDtos)
+                .totalCount(consenters.size())
+                .consenters(consenters)
                 .build();
-
     }
 }

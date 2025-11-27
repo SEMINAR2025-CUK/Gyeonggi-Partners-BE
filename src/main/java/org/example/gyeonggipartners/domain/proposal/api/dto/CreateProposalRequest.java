@@ -1,23 +1,41 @@
 package org.example.gyeonggipartners.domain.proposal.api.dto;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.gyeonggipartners.domain.proposal.domain.model.Evidence;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @NoArgsConstructor
-@Schema(description = "제안서 생성 요청")
 public class CreateProposalRequest {
 
+    @NotNull(message = "논의방 ID는 필수입니다.")
+    private Long roomId;
+
+    @NotBlank(message = "제목은 필수입니다.")
+    @Size(min = 5, max = 100, message = "제목은 5자 이상 100자 이하로 입력해주세요.")
     private String title;
 
-    private String paragraph;
+    @NotBlank(message = "문제 개요는 필수입니다.")
+    private String problemOverview;
 
-    private String image;
-
+    @NotBlank(message = "해결 방안은 필수입니다.")
     private String solution;
 
-    private String expectedEffect;
+    // 증거자료는 선택사항이지만, 들어온다면 내부 필드 검증 필요
+    @Valid
+    private List<EvidenceDto> evidences;
 
-    private Long roomId;
+    public List<Evidence> toEvidenceDomains() {
+        if (evidences == null) return new ArrayList<>();
+        return evidences.stream()
+                .map(EvidenceDto::toDomain)
+                .toList();
+    }
 }

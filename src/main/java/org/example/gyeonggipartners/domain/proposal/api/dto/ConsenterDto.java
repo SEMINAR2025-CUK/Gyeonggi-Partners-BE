@@ -3,20 +3,13 @@ package org.example.gyeonggipartners.domain.proposal.api.dto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import org.example.gyeonggipartners.domain.proposal.domain.model.Consenter;
+import lombok.NoArgsConstructor;
 
 @Getter
-@AllArgsConstructor
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ConsenterDto {
-
-    private Long id;
-    private String nickname;
-
-    public static ConsenterDto from(Consenter consenter) {
-        return ConsenterDto.builder()
-                .id(consenter.getId())
-                .nickname(consenter.getNickname())
-                .build();
-    }
+    private Long userId;
+    private String nickname; // 닉네임 필드 필수
 }
