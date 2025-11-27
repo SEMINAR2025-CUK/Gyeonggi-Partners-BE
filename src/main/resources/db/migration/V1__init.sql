@@ -160,4 +160,3 @@ CREATE TABLE proposal_consents
 
 COMMENT ON TABLE proposals IS '논의방 내에서 제출된 제안서를 관리하는 테이블';
 COMMENT ON COLUMN proposals.last_modifier_id IS '제안서를 작성한 사용자 ID';
-COMMENT ON COLUMN proposals.consents IS '동의한 사용자 목록 등을 JSON 형태로 저장';
