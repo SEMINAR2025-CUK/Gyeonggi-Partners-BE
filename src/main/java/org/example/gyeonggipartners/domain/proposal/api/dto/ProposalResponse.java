@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import org.example.gyeonggipartners.domain.proposal.domain.model.Proposal;
-import org.example.gyeonggipartners.domain.proposal.domain.model.SubmitStatus;
+import org.example.gyeonggipartners.domain.proposal.domain.model.ProposalStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,14 +16,19 @@ public class ProposalResponse {
 
     private Long id;
     private Long roomId;
-    private Long authorId;
+    private Long lastModifierId; // 최근 수정자 ID
 
     private String title;
-    private ContentFormatDto contents;
+    private String problemOverview;
+    private String solution;
+    private List<EvidenceDto> evidences;
 
-    private SubmitStatus status;
-    private List<ConsenterDto> consents;
-    private LocalDateTime deadline;
+    private ProposalStatus status;
+    private Integer requiredConsents;
+    private LocalDateTime consentDeadline;
+
+    private Long lockedBy;       // 현재 락 소유자 (없으면 null)
+    private LocalDateTime lockedAt;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -32,18 +37,20 @@ public class ProposalResponse {
         return ProposalResponse.builder()
                 .id(proposal.getId())
                 .roomId(proposal.getRoomId())
+                .lastModifierId(proposal.getLastModifierId())
                 .title(proposal.getTitle())
-                .contents(ContentFormatDto.from(proposal.getContents()))
-                .status(proposal.getStatus())
-                .consents(proposal.getConsents() != null
-                ? proposal.getConsents().stream()
-                        .map(ConsenterDto::from)
-                        .toList()
+                .problemOverview(proposal.getProblemOverview())
+                .solution(proposal.getSolution())
+                .evidences(proposal.getEvidences() != null
+                        ? proposal.getEvidences().stream().map(EvidenceDto::from).toList()
                         : List.of())
-                .deadline(proposal.getDeadline())
+                .status(proposal.getStatus())
+                .requiredConsents(proposal.getRequiredConsents())
+                .consentDeadline(proposal.getConsentDeadline())
+                .lockedBy(proposal.getLockedBy())
+                .lockedAt(proposal.getLockedAt())
                 .createdAt(proposal.getCreatedAt())
                 .updatedAt(proposal.getUpdatedAt())
                 .build();
-
     }
 }

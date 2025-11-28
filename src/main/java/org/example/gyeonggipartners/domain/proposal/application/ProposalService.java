@@ -1,280 +1,326 @@
 package org.example.gyeonggipartners.domain.proposal.application;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.gyeonggipartners.common.exception.BusinessException;
 import org.example.gyeonggipartners.domain.discussionroom.domain.repository.MemberRepository;
 import org.example.gyeonggipartners.domain.proposal.api.dto.*;
-import org.example.gyeonggipartners.domain.proposal.domain.model.Consenter;
-import org.example.gyeonggipartners.domain.proposal.domain.model.ContentFormat;
 import org.example.gyeonggipartners.domain.proposal.domain.model.Proposal;
-import org.example.gyeonggipartners.domain.proposal.domain.model.SubmitStatus;
+import org.example.gyeonggipartners.domain.proposal.domain.model.ProposalConsent;
+import org.example.gyeonggipartners.domain.proposal.domain.repository.ProposalConsentRepository;
 import org.example.gyeonggipartners.domain.proposal.domain.repository.ProposalRepository;
 import org.example.gyeonggipartners.domain.proposal.exception.ProposalErrorCode;
 import org.example.gyeonggipartners.domain.user.domain.model.User;
 import org.example.gyeonggipartners.domain.user.domain.repository.UserRepository;
-import org.example.gyeonggipartners.domain.user.exception.UserErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
 @Service
+@RequiredArgsConstructor
+@Slf4j
 @Transactional
 public class ProposalService {
 
+    private static final int MAX_PROPOSAL_LIMIT = 5;
+
     private final ProposalRepository proposalRepository;
-    private final UserRepository userRepository;
-    private final ProposalLockService lockService;
+    private final ProposalConsentRepository proposalConsentRepository;
     private final MemberRepository memberRepository;
+    private final UserRepository userRepository;
+
+    // =================================================================
+    // 단계 1. 제안서 생성 및 독점 작성 (사용자 A)
+    // =================================================================
 
     /**
-     * 제안서 작성
+     * 제안서 생성
+     * - 생성 즉시 DRAFTING 상태가 되며, 작성자(A)가 락을 소유함.
      */
-    public ProposalResponse createProposal(CreateProposalRequest request, Long userId) {
-
+    public ProposalResponse createProposal(Long userId, CreateProposalRequest request) {
         validateRoomMember(request.getRoomId(), userId);
+        validateProposalCountLimit(request.getRoomId());
 
-
-        int proposalCount = proposalRepository.countByRoomId(request.getRoomId());
-        if (proposalCount >= 5) {
-            throw new BusinessException(ProposalErrorCode.PROPOSAL_LIMIT_EXCEEDED);
-        }
-
-        ContentFormat contents = ContentFormat.of(
-                request.getParagraph(),
-                request.getImage(),
+        Proposal proposal = Proposal.create(
+                request.getRoomId(),
+                userId,
+                request.getTitle(),
+                request.getProblemOverview(),
                 request.getSolution(),
-                request.getExpectedEffect()
+                request.toEvidenceDomains()
         );
 
-        Proposal proposal = Proposal.create(request.getRoomId(), request.getTitle(), contents);
+        return ProposalResponse.from(proposalRepository.save(proposal));
+    }
 
-        Proposal saved = proposalRepository.save(proposal);
+    // =================================================================
+    // 단계 2. 임시 저장 및 권한 반납 (A -> 공용)
+    // =================================================================
 
-        return ProposalResponse.from(saved);
+    /**
+     * 내용 수정 (중간 저장)
+     * - 락을 소유한 사용자만 호출 가능.
+     * - 상태 변경 없이 내용만 업데이트함.
+     */
+    public ProposalResponse updateProposalContent(Long userId, Long proposalId, UpdateProposalRequest request) {
+        Proposal proposal = getProposalOrThrow(proposalId);
+        validateRoomMember(proposal.getRoomId(), userId);
+
+        // 도메인 로직: 락 소유자 검증 후 내용 업데이트
+        try {
+            proposal.updateContent(
+                    userId,
+                    request.getTitle(),
+                    request.getProblemOverview(),
+                    request.getSolution(),
+                    request.toEvidenceDomains()
+            );
+        } catch (IllegalStateException e) {
+            throw new BusinessException(ProposalErrorCode.NOT_LOCK_OWNER);
+        }
+
+        return ProposalResponse.from(proposal); // Dirty Checking으로 자동 저장
     }
 
     /**
-     * 제안서 조회
+     * 편집 종료 (임시 저장 및 나가기)
+     * - 상태를 SAVING으로 변경하고 락을 해제(반납)함.
+     * - 이후 다른 사용자가 접근 가능해짐.
      */
-    @Transactional(readOnly = true)
-    public ProposalResponse getProposal(Long proposalId, Long userId) {
+    public ProposalResponse stopEditing(Long userId, Long proposalId) {
+        Proposal proposal = getProposalOrThrow(proposalId);
+        validateRoomMember(proposal.getRoomId(), userId);
 
+        try {
+            proposal.saveAsDraft(userId);
+        } catch (IllegalStateException e) {
+            // 이미 락이 만료되었거나 권한이 없더라도, '나가기' 행위 자체는 에러를 낼 필요 없이 처리하거나 무시
+            // 여기서는 명시적 락 해제를 시도하므로 권한이 없다면 예외 발생이 맞음
+            throw new BusinessException(ProposalErrorCode.NOT_LOCK_OWNER);
+        }
 
-        Proposal proposal = proposalRepository.findById(proposalId)
+        return ProposalResponse.from(proposalRepository.save(proposal));
+    }
+
+    // =================================================================
+    // 단계 3. 릴레이 편집 (사용자 B 진입)
+    // =================================================================
+
+    /**
+     * 편집 모드 진입 (릴레이 시작)
+     * - [핵심] 비관적 락(DB Lock)을 사용하여 동시 진입을 원천 차단.
+     * - 상태를 DRAFTING으로 변경하고, 최근 수정자를 요청자(B)로 갱신.
+     */
+    public ProposalResponse startEditing(Long userId, Long proposalId) {
+        // 1. 비관적 락을 걸고 조회 (SELECT ... FOR UPDATE)
+        Proposal proposal = proposalRepository.findByIdWithLock(proposalId)
                 .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
 
         validateRoomMember(proposal.getRoomId(), userId);
 
+        validateEditableStatus(proposal);
+        // 2. 도메인 로직: 상태 전환 (SAVING -> DRAFTING), 락 획득, 수정자 갱신
+        try {
+            proposal.startEditing(userId);
+        } catch (IllegalStateException e) {
+            // 이미 누군가 작성 중인 경우
+            throw new BusinessException(ProposalErrorCode.PROPOSAL_BEING_EDITED);
+        }
+
+        return ProposalResponse.from(proposalRepository.save(proposal));
+    }
+
+    // =================================================================
+    // 단계 4. 작성 완료 및 투표 설정
+    // =================================================================
+
+    /**
+     * 작성 완료 (확정)
+     * - 내용을 더 이상 수정할 수 없도록 COMPLETED 상태로 변경.
+     * - 락은 해제됨.
+     */
+    public void completeProposal(Long userId, Long proposalId) {
+        Proposal proposal = getProposalOrThrow(proposalId);
+        validateRoomMember(proposal.getRoomId(), userId);
+
+        try {
+            proposal.complete(userId);
+        } catch (IllegalStateException e) {
+            throw new BusinessException(ProposalErrorCode.NOT_LOCK_OWNER);
+        }
+        
+        proposalRepository.save(proposal);
+    }
+
+    /**
+     * 투표 설정 및 시작
+     * - 최소 동의 인원과 마감 기한을 설정하고 VOTING 상태로 전환.
+     */
+    public ProposalResponse startVoting(Long userId, Long proposalId, StartVotingRequest request) {
+        Proposal proposal = getProposalOrThrow(proposalId);
+        validateRoomMember(proposal.getRoomId(), userId);
+
+        try {
+            proposal.startVoting(request.getRequiredConsents(), request.getConsentDeadline());
+        } catch (IllegalStateException e) {
+            throw new BusinessException(ProposalErrorCode.ALREADY_VOTING);
+        }
+
+        return ProposalResponse.from(proposalRepository.save(proposal));
+    }
+
+    // =================================================================
+    // 단계 5. 투표 진행 및 종료
+    // =================================================================
+
+    /**
+     * 제안서 동의 (투표하기)
+     * - 중복 투표 방지 및 동의 내역 저장.
+     * - 투표 조건 충족 시 제안서 상태를 자동 변경.
+     */
+    public void consentProposal(Long userId, Long proposalId) {
+        Proposal proposal = getProposalOrThrow(proposalId);
+        validateRoomMember(proposal.getRoomId(), userId);
+
+        // 1. 중복 투표 검증 (인프라 계층 활용)
+        if (proposalConsentRepository.existsByProposalIdAndUserId(proposalId, userId)) {
+            throw new BusinessException(ProposalErrorCode.ALREADY_CONSENTED);
+        }
+
+        // 2. 동의 내역 저장
+        ProposalConsent consent = ProposalConsent.create(proposalId, userId);
+        proposalConsentRepository.save(consent);
+
+        // 3. 종료 조건 체크 (현재 동의자 수 카운트 -> 도메인 로직 위임)
+        // 주의: 방금 저장한 것을 포함하기 위해 다시 조회하거나, 단순 카운트만 증가시켜 전달
+        int currentConsentCount = proposalConsentRepository.findByProposalId(proposalId).size();
+
+        try {
+            proposal.finishVoting(currentConsentCount);
+            proposalRepository.save(proposal);
+            // 상태가 READY_TO_SUBMIT으로 바뀌었다면, 트랜잭션 종료 시 반영됨
+        } catch (IllegalStateException e) {
+            // 아직 조건 미충족 시 예외가 발생할 수 있으나, 정상 흐름이므로 무시하고 진행
+        }
+    }
+
+    /**
+     * 동의자 목록 조회 (Read-Only)
+     */
+    @Transactional(readOnly = true)
+    public ConsenterListResponse getConsenters(Long userId, Long proposalId) {
+        Proposal proposal = getProposalOrThrow(proposalId);
+        validateRoomMember(proposal.getRoomId(), userId);
+
+        List<ProposalConsent> consents = proposalConsentRepository.findByProposalId(proposalId);
+
+        if (consents.isEmpty()) {
+            return ConsenterListResponse.of(List.of());
+        }
+
+        // 사용자 닉네임 조회를 위한 매핑
+        List<Long> userIds = consents.stream().map(ProposalConsent::getUserId).toList();
+        Map<Long, String> nicknameMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, User::getNickname));
+
+        List<ConsenterDto> dtos = consents.stream()
+                .map(c -> new ConsenterDto(c.getUserId(), nicknameMap.getOrDefault(c.getUserId(), "알 수 없음")))
+                .toList();
+
+        return ConsenterListResponse.of(dtos);
+    }
+
+    // =================================================================
+    // [조회] Read Operations
+    // =================================================================
+
+    @Transactional(readOnly = true)
+    public ProposalResponse getProposal(Long userId, Long proposalId) {
+        Proposal proposal = getProposalOrThrow(proposalId);
+        validateRoomMember(proposal.getRoomId(), userId);
         return ProposalResponse.from(proposal);
     }
 
-
-    /**
-     * 제안서 목록 조회
-     */
     @Transactional(readOnly = true)
-    public List<ProposalResponse> getProposalsByRoom(Long roomId, Long userId) {
-
+    public List<ProposalResponse> getProposalsByRoom(Long userId, Long roomId) {
         validateRoomMember(roomId, userId);
-
-        List<Proposal> proposals = proposalRepository.findByRoomId(roomId);
-
-        return proposals.stream()
+        return proposalRepository.findByRoomId(roomId).stream()
                 .map(ProposalResponse::from)
                 .toList();
     }
 
+    // =================================================================
+    // [헬퍼] Helper Methods (DRY)
+    // =================================================================
 
-    /**
-     * 제안서 수정
-     */
-    public ProposalResponse updateProposal(Long proposalId, UpdateProposalRequest request, Long userId) {
-
-        Proposal proposal = proposalRepository.findById(proposalId)
+    private Proposal getProposalOrThrow(Long proposalId) {
+        return proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
-
-        validateRoomMember(proposal.getRoomId(), userId);
-
-        if (proposal.getStatus() == SubmitStatus.VOTING) {
-            throw new BusinessException(ProposalErrorCode.PROPOSAL_LOCKED);
-        }
-
-        Long lockOwner = lockService.getLockOwner(proposalId);
-        if (lockOwner == null || !lockOwner.equals(userId)) {
-            throw new BusinessException(ProposalErrorCode.PROPOSAL_BEING_EDITED);
-        }
-
-
-
-        ContentFormat contents = ContentFormat.of(
-                request.getParagraph(),
-                request.getImage(),
-                request.getSolution(),
-                request.getExpectedEffect()
-        );
-
-        proposal.update(request.getTitle(), contents);
-
-        Proposal updated = proposalRepository.save(proposal);
-
-        lockService.renewLock(proposalId, userId);
-
-        return ProposalResponse.from(updated);
-    }
-
-    /**
-     * 투표 시작
-     */
-    public ProposalResponse startVoting(Long proposalId, Long userId) {
-        Proposal proposal = proposalRepository.findById(proposalId)
-                .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
-
-        validateRoomMember(proposal.getRoomId(), userId);
-
-        try {
-            proposal.startVoting();
-        }catch (IllegalStateException e) {
-            if (e.getMessage().contains("이미 투표")) {
-                throw new BusinessException(ProposalErrorCode.ALREADY_VOTING);
-            } else if (e.getMessage().contains("제출 가능한")) {
-                throw new BusinessException(ProposalErrorCode.ALREADY_SUBMITTABLE);
-            }
-        }
-
-        Proposal saved = proposalRepository.save(proposal);
-
-        return ProposalResponse.from(saved);
-    }
-
-    /**
-     * 투표 종료
-     */
-    public ProposalResponse endVoting(Long proposalId, Long userId) {
-
-        Proposal proposal = proposalRepository.findById(proposalId)
-                .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
-
-        validateRoomMember(proposal.getRoomId(), userId);
-
-        try {
-            proposal.endVoting();
-        }catch (IllegalStateException e) {
-            throw new BusinessException(ProposalErrorCode.NOT_IN_VOTING);
-        }
-
-        Proposal saved = proposalRepository.save(proposal);
-
-        return ProposalResponse.from(saved);
-    }
-
-
-    /**
-     * 해당 제안서에 동의하기
-     */
-    public void consentProposal(Long proposalId, Long userId) {
-        Proposal proposal = proposalRepository.findById(proposalId)
-                .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
-
-        validateRoomMember(proposal.getRoomId(), userId);
-
-        proposal.checkAndUpdateVotingStatus();
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
-
-        try {
-            proposal.addConsent(new Consenter(user.getId(), user.getNickname()));
-            proposalRepository.save(proposal);
-        }catch (IllegalStateException e) {
-            if (e.getMessage().contains("이미 동의")) {
-                throw new BusinessException(ProposalErrorCode.ALREADY_CONSENTED);
-            } else if (e.getMessage().contains("투표 중")) {
-                throw new BusinessException(ProposalErrorCode.NOT_IN_VOTING);
-            } else if (e.getMessage().contains("마감")) {
-                throw new BusinessException(ProposalErrorCode.VOTING_DEADLINE_EXPIRED);
-            }
-        }
-    }
-
-    /**
-     * 제안서 동의자 목록 조회
-     */
-    @Transactional(readOnly = true)
-    public ConsenterListResponse getConsenters(Long proposalId, Long userId) {
-
-        Proposal proposal = proposalRepository.findById(proposalId)
-                .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
-
-        validateRoomMember(proposal.getRoomId(), userId);
-
-        return ConsenterListResponse.from(proposal);
-    }
-
-
-    /**
-     * 제안서 편집 시작 ( 락 획득 )
-     */
-    public ProposalResponse startEditing(Long proposalId, Long userId) {
-
-        Proposal proposal = proposalRepository.findById(proposalId)
-                .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
-
-        validateRoomMember(proposal.getRoomId(), userId);
-
-        if(proposal.getStatus() == SubmitStatus.VOTING) {
-            throw new BusinessException(ProposalErrorCode.PROPOSAL_LOCKED);
-        }
-
-        if (!lockService.tryLock(proposalId, userId)) {
-            throw new BusinessException(ProposalErrorCode.PROPOSAL_BEING_EDITED);
-        }
-
-        return ProposalResponse.from(proposal);
-    }
-
-
-    /**
-     * 제안서 수정 완료 ( 락 해제 )
-     */
-    public void finishEditing(Long proposalId, Long userId) {
-
-        proposalRepository.findById(proposalId)
-                        .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
-
-        validateRoomMember(proposalId, userId);
-
-        lockService.unlock(proposalId, userId);
-    }
-
-
-    @Transactional(readOnly = true)
-    public LockStatusResponse getLockStatus(Long proposalId, Long userId) {
-
-        Proposal proposal = proposalRepository.findById(proposalId)
-                .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
-
-        validateRoomMember(proposal.getRoomId(), userId);
-
-        Long lockOwner = lockService.getLockOwner(proposalId);
-
-        if (lockOwner == null) {
-            return LockStatusResponse.unlocked();
-        }
-
-        User user = userRepository.findById(lockOwner)
-                .orElse(null);
-
-        String nickname = user != null ? user.getNickname() : "알 수 없음";
-
-        return LockStatusResponse.locked(lockOwner, nickname);
     }
 
     private void validateRoomMember(Long roomId, Long userId) {
-        boolean isMember = memberRepository.existsByUserIdAndRoomId(userId, roomId);
-        if(!isMember) {
+        if (!memberRepository.existsByUserIdAndRoomId(userId, roomId)) {
             throw new BusinessException(ProposalErrorCode.UNAUTHORIZED_ACCESS);
         }
+    }
+
+    private void validateProposalCountLimit(Long roomId) {
+        if (proposalRepository.countByRoomId(roomId) >= MAX_PROPOSAL_LIMIT) {
+            throw new BusinessException(ProposalErrorCode.PROPOSAL_LIMIT_EXCEEDED);
+        }
+    }
+
+    private void validateEditableStatus(Proposal proposal) {
+        switch (proposal.getStatus()) {
+            case DRAFTING:
+                throw new BusinessException(ProposalErrorCode.PROPOSAL_BEING_EDITED);
+            case VOTING:
+                throw new BusinessException(ProposalErrorCode.CANNOT_EDIT_IN_VOTING);
+            case COMPLETED:
+                throw new BusinessException(ProposalErrorCode.CANNOT_EDIT_COMPLETED);
+            case READY_TO_SUBMIT:
+                throw new BusinessException(ProposalErrorCode.CANNOT_EDIT_READY_TO_SUBMIT);
+            case SUBMITTED:
+                throw new BusinessException(ProposalErrorCode.CANNOT_EDIT_SUBMITTED);
+            case SAVING:
+                // 정상 진입 가능 상태
+                break;
+            default:
+                throw new BusinessException(ProposalErrorCode.UNAUTHORIZED_ACCESS);
+        }
+    }
+
+    /**
+     * 투표 기간 만료 제안서 일괄 종료 처리
+     * - 스케줄러에 의해 주기적으로 호출됨
+     * - 별도의 트랜잭션으로 실행
+     */
+    @Transactional
+    public int closeExpiredProposals() {
+        // 1. 마감 기한이 지났는데 아직 VOTING 상태인 제안서 조회
+        List<Proposal> expiredProposals = proposalRepository.findVotingProposalsWithExpiredDeadline(LocalDateTime.now());
+
+        int count = 0;
+        for (Proposal proposal : expiredProposals) {
+            try {
+                // 2. 현재 동의자 수 조회
+                int currentConsentCount = proposalConsentRepository.findByProposalId(proposal.getId()).size();
+
+                // 3. 투표 종료 (도메인 로직 호출 -> READY_TO_SUBMIT 전환)
+                // 주의: finishVoting은 조건(인원수 or 시간)을 체크하므로, 시간이 지났으면 인원 미달이어도 종료될 수 있어야 함.
+                // Proposal.finishVoting 로직이 "시간이 지났으면 OK"를 허용하는지 확인 필요.
+                // (우리가 작성한 도메인 로직은 "인원 충족 OR 시간 경과"면 통과이므로 OK)
+                proposal.finishVoting(currentConsentCount);
+                count++;
+            } catch (Exception e) {
+                // 개별 실패가 전체 롤백을 유발하지 않도록 로그만 남기고 계속 진행 (실무적 처리)
+                log.error("제안서 {} 자동 종료 실패: {}", proposal.getId(), e.getMessage());
+            }
+        }
+        return count;
     }
 }

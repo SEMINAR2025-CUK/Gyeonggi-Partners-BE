@@ -63,5 +63,10 @@ public class UserRepositoryImpl implements UserRepository {
         return userJpaRepository.findNicknameByIdIn(ids);
     }
 
-
+    @Override
+    public List<User> findAllById(List<Long> ids) {
+        return userJpaRepository.findAllById(ids).stream()
+                .map(UserEntity::toDomain)
+                .toList();
+    }
 }

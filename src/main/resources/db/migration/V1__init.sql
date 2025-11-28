@@ -28,12 +28,12 @@ CREATE TYPE message_type_enum AS ENUM (
 );
 
 CREATE TYPE proposal_status_enum AS ENUM (
-    'DRAFTING',         -- 내용 작성 중
-    'SAVING',            -- 저장 상태
-    'PENDING_CONSENT',  -- 동의 진행 중
-    'CONSENT_FAILED',   -- 합의 실패
-    'READY_TO_SUBMIT',  -- 제출 가능
-    'SUBMITTED'         -- 외부 시스템에 제출 완료
+    'DRAFTING',         -- 내용 작성 중 (Locked)
+    'SAVING',           -- 미 완성 상태 (unLocked)
+    'COMPLETED',        -- 완성 상태 (Locked)
+    'VOTING',           -- 동의 진행 중 (Locked)
+    'READY_TO_SUBMIT',  -- 제출 가능 (Locked)
+    'SUBMITTED'         -- 외부 시스템에 제출 완료 (unLocked)
 );
 
 
@@ -114,22 +114,49 @@ CREATE TABLE proposals
 (
     proposal_id       BIGSERIAL PRIMARY KEY,
     room_id           BIGINT            NOT NULL,
-    author_id         BIGINT,                      -- 마지막 저장자 ID (NULL 허용)
+    last_modifier_id         BIGINT,
     title             VARCHAR(100)      NOT NULL,
-    contents          JSONB             NOT NULL,
+
+    problem_overview  TEXT              NOT NULL,
+    solution          TEXT              NOT NULL,
+    evidences         JSONB             DEFAULT '[]'::jsonb,
+
     required_consents INTEGER           NOT NULL DEFAULT 1,
     consent_deadline  TIMESTAMP WITH TIME ZONE,
     status            proposal_status_enum NOT NULL DEFAULT 'DRAFTING',
-    consents          JSONB,
-    version           BIGINT            NOT NULL DEFAULT 1,
+
+    locked_by         BIGINT,
+    locked_at         TIMESTAMP WITH TIME ZONE,
+
     created_at        TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at        TIMESTAMP WITH TIME ZONE,
     deleted_at        TIMESTAMP WITH TIME ZONE,
 
     -- 외래 키 제약조건
     CONSTRAINT fk_proposals_discussion_room FOREIGN KEY (room_id) REFERENCES discussion_rooms (room_id) ON DELETE CASCADE,
-    CONSTRAINT fk_proposals_author FOREIGN KEY (author_id) REFERENCES users (user_id) ON DELETE SET NULL
+    CONSTRAINT fk_proposals_author FOREIGN KEY (last_modifier_id) REFERENCES users (user_id) ON DELETE SET NULL,
+    CONSTRAINT fk_proposals_locked_user FOREIGN KEY (locked_by) REFERENCES users (user_id) ON DELETE SET NULL
 );
+
+
+CREATE TABLE proposal_consents
+(
+    proposal_id       BIGINT            NOT NULL,
+    user_id           BIGINT            NOT NULL,
+    created_at        TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    -- [핵심] 복합 키(Composite Key) 설정
+    -- 1. 식별자 역할: 별도의 ID 컬럼 없이 이 두 조합으로 식별
+    -- 2. 중복 방지: (1번 제안서, A유저) 조합이 두 번 들어갈 수 없음 (UNIQUE 효과)
+    PRIMARY KEY (proposal_id, user_id),
+
+    -- 외래 키 제약조건
+    -- 제안서가 삭제되면 투표 내역도 같이 삭제 (CASCADE)
+    CONSTRAINT fk_consents_proposal FOREIGN KEY (proposal_id) REFERENCES proposals (proposal_id) ON DELETE CASCADE,
+    -- 유저가 탈퇴해도 투표 수는 유지하고 싶다면 ON DELETE SET NULL 등을 고려해야 하나,
+    -- 보통 복합키 구성원인 경우 CASCADE로 함께 지우거나, 유저 테이블에서 Soft Delete를 하는 것이 일반적임.
+    CONSTRAINT fk_consents_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
+);
+
 COMMENT ON TABLE proposals IS '논의방 내에서 제출된 제안서를 관리하는 테이블';
-COMMENT ON COLUMN proposals.author_id IS '제안서를 작성한 사용자 ID';
-COMMENT ON COLUMN proposals.consents IS '동의한 사용자 목록 등을 JSON 형태로 저장';
+COMMENT ON COLUMN proposals.last_modifier_id IS '제안서를 작성한 사용자 ID';
