@@ -11,13 +11,11 @@ import java.util.List;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Proposal {
 
-    // --- 상수 ---
     public static final int LOCK_TIMEOUT_MINUTES = 45;
 
-    // --- 필드 ---
     private Long id;
     private Long roomId;
-    private Long lastModifierId; // 최근 수정자
+    private Long lastModifierId;
 
     private String title;
     private String problemOverview;
@@ -28,13 +26,12 @@ public class Proposal {
     private LocalDateTime consentDeadline;
     private ProposalStatus status;
 
-    private Long lockedBy;     // 현재 편집 권한을 가진 사람
+    private Long lockedBy;
     private LocalDateTime lockedAt;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
-
 
 
     /**
@@ -78,7 +75,6 @@ public class Proposal {
     public static Proposal create(Long roomId, Long authorId, String title,
                                   String problemOverview, String solution,
                                   List<Evidence> evidences) {
-        // 입력값 검증 분리
         validateContent(title, problemOverview, solution);
 
         return Proposal.builder()
@@ -88,8 +84,8 @@ public class Proposal {
                 .problemOverview(problemOverview)
                 .solution(solution)
                 .evidences(evidences != null ? evidences : new ArrayList<>())
-                .status(ProposalStatus.DRAFTING) // 초기 상태
-                .lockedBy(authorId)              // 생성자에게 즉시 락 부여
+                .status(ProposalStatus.DRAFTING)
+                .lockedBy(authorId)
                 .lockedAt(LocalDateTime.now())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
@@ -108,13 +104,9 @@ public class Proposal {
         if (this.status != ProposalStatus.SAVING) {
             throw new IllegalStateException("작성 중(임시저장)인 제안서만 편집할 수 있습니다.");
         }
-        // 1. 접근 가능 여부 검증 (이미 누가 쓰고 있는지, 만료된 락인지 등)
+
         validateAcquirableLock(userId);
-
-        // 2. 락 획득 (락 소유자 변경 및 시간 갱신)
         acquireLock(userId);
-
-        // 3. 상태 및 수정자 정보 갱신 (SAVING -> DRAFTING)
         transitionToDrafting(userId);
     }
 
@@ -124,13 +116,9 @@ public class Proposal {
      */
     public void updateContent(Long userId, String title, String problemOverview,
                               String solution, List<Evidence> evidences) {
-        // 1. 권한 검증 (현재 락을 쥔 사람인지)
         validateLockOwner(userId);
-
-        // 2. 내용 유효성 검증
         validateContent(title, problemOverview, solution);
 
-        // 3. 실제 필드 업데이트
         this.title = title;
         this.problemOverview = problemOverview;
         this.solution = solution;
@@ -146,7 +134,7 @@ public class Proposal {
         validateLockOwner(userId);
 
         this.status = ProposalStatus.SAVING;
-        releaseLock(); // 타인이 접근 가능하도록 락 해제
+        releaseLock();
     }
 
     /**
@@ -157,7 +145,7 @@ public class Proposal {
         validateLockOwner(userId);
 
         this.status = ProposalStatus.COMPLETED;
-        releaseLock(); // 락 해제
+        releaseLock();
     }
 
     // =================================================================
@@ -184,7 +172,7 @@ public class Proposal {
     public void finishVoting(int currentConsentCount) {
         validateStatus(ProposalStatus.VOTING, "투표 진행 중인 제안서가 아닙니다.");
 
-        // 종료 조건 확인 (조건을 만족하지 않으면 종료 불가)
+        // 투표 종료 조건: 최소 인원 충족 또는 마감 시간 경과
         if (!canFinishVoting(currentConsentCount)) {
             throw new IllegalStateException("투표 종료 조건(최소 인원 충족 또는 마감 시간 경과)을 만족하지 않았습니다.");
         }
@@ -196,17 +184,23 @@ public class Proposal {
     // 4. [제출] Submit Phase
     // =================================================================
 
+    /**
+     * 제출 - READY_TO_SUBMIT → SUBMITTED 상태 전환
+     */
     public void submit() {
         validateStatus(ProposalStatus.READY_TO_SUBMIT, "제출 대기 상태인 제안서만 제출할 수 있습니다.");
         this.status = ProposalStatus.SUBMITTED;
     }
 
     // =================================================================
-    // Internal Helper Methods (SRP를 위한 내부 로직 분리)
+    // Internal Helper Methods
     // =================================================================
 
     // --- 검증(Validation) 관련 ---
 
+    /**
+     * 제안서 내용 검증 - title 5자 이상, problemOverview/solution 필수
+     */
     private static void validateContent(String title, String problem, String solution) {
         if (title == null || title.isBlank() || title.length() < 5)
             throw new IllegalArgumentException("제목은 5자 이상이어야 합니다.");
@@ -216,10 +210,16 @@ public class Proposal {
             throw new IllegalArgumentException("해결방안은 필수입니다.");
     }
 
+    /**
+     * 현재 상태가 expected와 일치하는지 검증
+     */
     private void validateStatus(ProposalStatus expected, String message) {
         if (this.status != expected) throw new IllegalStateException(message);
     }
 
+    /**
+     * 투표 파라미터 검증 - count 1명 이상, deadline 미래 시점
+     */
     private void validateVotingParams(Integer count, LocalDateTime deadline) {
         if (count == null || count < 1) throw new IllegalArgumentException("최소 동의 인원은 1명 이상입니다.");
         if (deadline == null || deadline.isBefore(LocalDateTime.now())) throw new IllegalArgumentException("마감일은 미래여야 합니다.");
@@ -227,6 +227,9 @@ public class Proposal {
 
     // --- 락(Lock) 관련 ---
 
+    /**
+     * 락 획득 가능 여부 검증 - 락이 없거나, 만료됐거나, 내 락이면 통과
+     */
     private void validateAcquirableLock(Long userId) {
         // 이미 내가 락을 가지고 있거나, 락이 없거나, 락이 만료되었으면 OK
         boolean isLockFree = (this.lockedBy == null) || isLockExpired();
@@ -237,6 +240,9 @@ public class Proposal {
         }
     }
 
+    /**
+     * 락 소유자 검증 및 세션 갱신 - 락 소유자가 아니거나 만료 시 예외
+     */
     private void validateLockOwner(Long userId) {
         if (this.lockedBy == null || !this.lockedBy.equals(userId)) {
             throw new IllegalStateException("편집 권한(락)이 없습니다.");
@@ -244,23 +250,28 @@ public class Proposal {
         if (isLockExpired()) {
             throw new IllegalStateException("편집 세션이 만료되었습니다. 다시 진입해주세요.");
         }
-        // 작업할 때마다 락 시간 갱신 (선택 사항)
         this.lockedAt = LocalDateTime.now();
     }
 
-    /**락 획득 함수*/
+    /**
+     * 락 획득 - lockedBy, lockedAt 갱신
+     */
     private void acquireLock(Long userId) {
         this.lockedBy = userId;
         this.lockedAt = LocalDateTime.now();
     }
 
-    /**락 해제 함수*/
+    /**
+     * 락 해제 - lockedBy, lockedAt을 null로 초기화
+     */
     private void releaseLock() {
         this.lockedBy = null;
         this.lockedAt = null;
     }
 
-    /**락이 만료됐는지 확인하는 함수 함수*/
+    /**
+     * 락 만료 판단 - lockedAt 기준 LOCK_TIMEOUT_MINUTES(45분) 경과 여부
+     */
     private boolean isLockExpired() {
         if (this.lockedAt == null) return true;
         return LocalDateTime.now().isAfter(this.lockedAt.plusMinutes(LOCK_TIMEOUT_MINUTES));
@@ -268,23 +279,27 @@ public class Proposal {
 
     // --- 상태 전이 관련 ---
 
-    /**제안서 상태를 SAVING->DRAFTING 으로 변경*/
+    /**
+     * SAVING → DRAFTING 전환 및 수정자 변경
+     * - DRAFTING 상태에서 호출 시 무시됨
+     */
     private void transitionToDrafting(Long userId) {
-        // SAVING -> DRAFTING으로 돌아올 때 수정자 정보 갱신
         if (this.status == ProposalStatus.SAVING) {
             this.status = ProposalStatus.DRAFTING;
-            this.lastModifierId = userId; // [중요] 수정자 변경 (A -> B)
+            this.lastModifierId = userId;
         }
         // 이미 DRAFTING인데 작성자가 아닌 사람이 들어오는 경우는 validateAcquirableLock에서 막힘
     }
 
     // --- 투표 조건 판단 ---
 
+    /**
+     * 투표 종료 가능 여부 - 최소 인원 충족 또는 마감 시간 경과
+     */
     private boolean canFinishVoting(int currentCount) {
         boolean isQuotaMet = currentCount >= this.requiredConsents;
         boolean isExpired = LocalDateTime.now().isAfter(this.consentDeadline);
 
-        // 인원이 찼거나, 시간이 지났으면 종료 가능
         return isQuotaMet || isExpired;
     }
 }

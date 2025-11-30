@@ -39,7 +39,7 @@ public class ProposalService {
 
     /**
      * 제안서 생성
-     * - 생성 즉시 DRAFTING 상태가 되며, 작성자(A)가 락을 소유함.
+     * - 생성 즉시 DRAFTING 상태가 되며, 작성자(A)가 락을 소유함
      */
     public ProposalResponse createProposal(Long userId, CreateProposalRequest request) {
         validateRoomMember(request.getRoomId(), userId);
@@ -63,14 +63,13 @@ public class ProposalService {
 
     /**
      * 내용 수정 (중간 저장)
-     * - 락을 소유한 사용자만 호출 가능.
-     * - 상태 변경 없이 내용만 업데이트함.
+     * - 락을 소유한 사용자만 호출 가능
+     * - 상태 변경 없이 내용만 업데이트함
      */
     public ProposalResponse updateProposalContent(Long userId, Long proposalId, UpdateProposalRequest request) {
         Proposal proposal = getProposalOrThrow(proposalId);
         validateRoomMember(proposal.getRoomId(), userId);
 
-        // 도메인 로직: 락 소유자 검증 후 내용 업데이트
         try {
             proposal.updateContent(
                     userId,
@@ -83,13 +82,13 @@ public class ProposalService {
             throw new BusinessException(ProposalErrorCode.NOT_LOCK_OWNER);
         }
 
-        return ProposalResponse.from(proposal); // Dirty Checking으로 자동 저장
+        return ProposalResponse.from(proposal);
     }
 
     /**
      * 편집 종료 (임시 저장 및 나가기)
-     * - 상태를 SAVING으로 변경하고 락을 해제(반납)함.
-     * - 이후 다른 사용자가 접근 가능해짐.
+     * - 상태를 SAVING으로 변경하고 락을 해제(반납)함
+     * - 이후 다른 사용자가 접근 가능해짐
      */
     public ProposalResponse stopEditing(Long userId, Long proposalId) {
         Proposal proposal = getProposalOrThrow(proposalId);
@@ -98,8 +97,7 @@ public class ProposalService {
         try {
             proposal.saveAsDraft(userId);
         } catch (IllegalStateException e) {
-            // 이미 락이 만료되었거나 권한이 없더라도, '나가기' 행위 자체는 에러를 낼 필요 없이 처리하거나 무시
-            // 여기서는 명시적 락 해제를 시도하므로 권한이 없다면 예외 발생이 맞음
+            // '나가기' 행위에서 락 권한이 없으면 명시적 예외 발생이 맞음
             throw new BusinessException(ProposalErrorCode.NOT_LOCK_OWNER);
         }
 
@@ -112,22 +110,20 @@ public class ProposalService {
 
     /**
      * 편집 모드 진입 (릴레이 시작)
-     * - [핵심] 비관적 락(DB Lock)을 사용하여 동시 진입을 원천 차단.
-     * - 상태를 DRAFTING으로 변경하고, 최근 수정자를 요청자(B)로 갱신.
+     * - 비관적 락(DB Lock)을 사용하여 동시 진입을 원천 차단
+     * - 상태를 DRAFTING으로 변경하고, 최근 수정자를 요청자(B)로 갱신
      */
     public ProposalResponse startEditing(Long userId, Long proposalId) {
-        // 1. 비관적 락을 걸고 조회 (SELECT ... FOR UPDATE)
+        // SELECT ... FOR UPDATE로 동시성 제어
         Proposal proposal = proposalRepository.findByIdWithLock(proposalId)
                 .orElseThrow(() -> new BusinessException(ProposalErrorCode.PROPOSAL_NOT_FOUND));
 
         validateRoomMember(proposal.getRoomId(), userId);
-
         validateEditableStatus(proposal);
-        // 2. 도메인 로직: 상태 전환 (SAVING -> DRAFTING), 락 획득, 수정자 갱신
+
         try {
             proposal.startEditing(userId);
         } catch (IllegalStateException e) {
-            // 이미 누군가 작성 중인 경우
             throw new BusinessException(ProposalErrorCode.PROPOSAL_BEING_EDITED);
         }
 
@@ -140,8 +136,8 @@ public class ProposalService {
 
     /**
      * 작성 완료 (확정)
-     * - 내용을 더 이상 수정할 수 없도록 COMPLETED 상태로 변경.
-     * - 락은 해제됨.
+     * - 내용을 더 이상 수정할 수 없도록 COMPLETED 상태로 변경
+     * - 락은 해제됨
      */
     public void completeProposal(Long userId, Long proposalId) {
         Proposal proposal = getProposalOrThrow(proposalId);
@@ -152,13 +148,13 @@ public class ProposalService {
         } catch (IllegalStateException e) {
             throw new BusinessException(ProposalErrorCode.NOT_LOCK_OWNER);
         }
-        
+
         proposalRepository.save(proposal);
     }
 
     /**
      * 투표 설정 및 시작
-     * - 최소 동의 인원과 마감 기한을 설정하고 VOTING 상태로 전환.
+     * - 최소 동의 인원과 마감 기한을 설정하고 VOTING 상태로 전환
      */
     public ProposalResponse startVoting(Long userId, Long proposalId, StartVotingRequest request) {
         Proposal proposal = getProposalOrThrow(proposalId);
@@ -179,37 +175,33 @@ public class ProposalService {
 
     /**
      * 제안서 동의 (투표하기)
-     * - 중복 투표 방지 및 동의 내역 저장.
-     * - 투표 조건 충족 시 제안서 상태를 자동 변경.
+     * - 중복 투표 방지 및 동의 내역 저장
+     * - 투표 조건 충족 시 제안서 상태를 자동 변경
      */
     public void consentProposal(Long userId, Long proposalId) {
         Proposal proposal = getProposalOrThrow(proposalId);
         validateRoomMember(proposal.getRoomId(), userId);
 
-        // 1. 중복 투표 검증 (인프라 계층 활용)
         if (proposalConsentRepository.existsByProposalIdAndUserId(proposalId, userId)) {
             throw new BusinessException(ProposalErrorCode.ALREADY_CONSENTED);
         }
 
-        // 2. 동의 내역 저장
         ProposalConsent consent = ProposalConsent.create(proposalId, userId);
         proposalConsentRepository.save(consent);
 
-        // 3. 종료 조건 체크 (현재 동의자 수 카운트 -> 도메인 로직 위임)
-        // 주의: 방금 저장한 것을 포함하기 위해 다시 조회하거나, 단순 카운트만 증가시켜 전달
+        // 주의: 방금 저장한 동의를 포함하기 위해 다시 조회
         int currentConsentCount = proposalConsentRepository.findByProposalId(proposalId).size();
 
         try {
             proposal.finishVoting(currentConsentCount);
             proposalRepository.save(proposal);
-            // 상태가 READY_TO_SUBMIT으로 바뀌었다면, 트랜잭션 종료 시 반영됨
         } catch (IllegalStateException e) {
-            // 아직 조건 미충족 시 예외가 발생할 수 있으나, 정상 흐름이므로 무시하고 진행
+            // 조건 미충족 시 예외 발생하나, 정상 흐름이므로 무시
         }
     }
 
     /**
-     * 동의자 목록 조회 (Read-Only)
+     * 동의자 목록 조회
      */
     @Transactional(readOnly = true)
     public ConsenterListResponse getConsenters(Long userId, Long proposalId) {
@@ -222,7 +214,6 @@ public class ProposalService {
             return ConsenterListResponse.of(List.of());
         }
 
-        // 사용자 닉네임 조회를 위한 매핑
         List<Long> userIds = consents.stream().map(ProposalConsent::getUserId).toList();
         Map<Long, String> nicknameMap = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(User::getId, User::getNickname));
@@ -238,6 +229,9 @@ public class ProposalService {
     // [조회] Read Operations
     // =================================================================
 
+    /**
+     * 제안서 단건 조회
+     */
     @Transactional(readOnly = true)
     public ProposalResponse getProposal(Long userId, Long proposalId) {
         Proposal proposal = getProposalOrThrow(proposalId);
@@ -245,6 +239,9 @@ public class ProposalService {
         return ProposalResponse.from(proposal);
     }
 
+    /**
+     * 논의방 내 제안서 목록 조회
+     */
     @Transactional(readOnly = true)
     public List<ProposalResponse> getProposalsByRoom(Long userId, Long roomId) {
         validateRoomMember(roomId, userId);
@@ -254,7 +251,7 @@ public class ProposalService {
     }
 
     // =================================================================
-    // [헬퍼] Helper Methods (DRY)
+    // [헬퍼] Helper Methods
     // =================================================================
 
     private Proposal getProposalOrThrow(Long proposalId) {
@@ -274,6 +271,9 @@ public class ProposalService {
         }
     }
 
+    /**
+     * 편집 진입 가능 상태 검증 - SAVING만 허용, 상태별 예외 분기
+     */
     private void validateEditableStatus(Proposal proposal) {
         switch (proposal.getStatus()) {
             case DRAFTING:
@@ -287,7 +287,6 @@ public class ProposalService {
             case SUBMITTED:
                 throw new BusinessException(ProposalErrorCode.CANNOT_EDIT_SUBMITTED);
             case SAVING:
-                // 정상 진입 가능 상태
                 break;
             default:
                 throw new BusinessException(ProposalErrorCode.UNAUTHORIZED_ACCESS);
@@ -297,27 +296,20 @@ public class ProposalService {
     /**
      * 투표 기간 만료 제안서 일괄 종료 처리
      * - 스케줄러에 의해 주기적으로 호출됨
-     * - 별도의 트랜잭션으로 실행
      */
     @Transactional
     public int closeExpiredProposals() {
-        // 1. 마감 기한이 지났는데 아직 VOTING 상태인 제안서 조회
         List<Proposal> expiredProposals = proposalRepository.findVotingProposalsWithExpiredDeadline(LocalDateTime.now());
 
         int count = 0;
         for (Proposal proposal : expiredProposals) {
             try {
-                // 2. 현재 동의자 수 조회
                 int currentConsentCount = proposalConsentRepository.findByProposalId(proposal.getId()).size();
 
-                // 3. 투표 종료 (도메인 로직 호출 -> READY_TO_SUBMIT 전환)
-                // 주의: finishVoting은 조건(인원수 or 시간)을 체크하므로, 시간이 지났으면 인원 미달이어도 종료될 수 있어야 함.
-                // Proposal.finishVoting 로직이 "시간이 지났으면 OK"를 허용하는지 확인 필요.
-                // (우리가 작성한 도메인 로직은 "인원 충족 OR 시간 경과"면 통과이므로 OK)
+                // finishVoting은 "인원 충족 OR 시간 경과"면 통과하므로 시간 만료 시 인원 미달이어도 종료됨
                 proposal.finishVoting(currentConsentCount);
                 count++;
             } catch (Exception e) {
-                // 개별 실패가 전체 롤백을 유발하지 않도록 로그만 남기고 계속 진행 (실무적 처리)
                 log.error("제안서 {} 자동 종료 실패: {}", proposal.getId(), e.getMessage());
             }
         }

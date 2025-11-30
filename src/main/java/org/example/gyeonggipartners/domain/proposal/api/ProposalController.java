@@ -35,7 +35,6 @@ public class ProposalController {
             @Parameter(description = "논의방 ID", example = "1", required = true)
             @RequestParam Long roomId,
 
-            // [수정] hidden = true 제거 -> Swagger에서 직접 입력 가능하도록 변경
             @Parameter(description = "사용자 ID (테스트용)", example = "1", required = true)
             @RequestHeader("X-USER-ID") Long userId
     ) {
