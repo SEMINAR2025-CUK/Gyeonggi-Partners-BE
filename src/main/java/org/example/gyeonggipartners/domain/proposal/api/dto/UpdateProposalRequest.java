@@ -27,7 +27,6 @@ public class UpdateProposalRequest {
     @Valid
     private List<EvidenceDto> evidences;
 
-    // Domain 변환 편의 메서드
     public List<Evidence> toEvidenceDomains() {
         if (evidences == null) return new ArrayList<>();
         return evidences.stream()

@@ -9,10 +9,7 @@ import java.util.Optional;
 public interface ProposalRepository {
 
 
-    /**
-     * 제안서 저장 (생성 및 수정)
-     * - 구현체에서 JpaRepository.save() 호출
-     */
+    /** 제안서 저장 (생성 및 수정) */
     Proposal save(Proposal proposal);
 
     /**
@@ -39,10 +36,7 @@ public interface ProposalRepository {
      */
     int countByRoomId(Long roomId);
 
-    /**
-     * 투표 기간이 만료된 제안서 조회 (스케줄러용)
-     * - 구현체에서 @Query로 조회
-     */
+    /** 투표 기간이 만료된 VOTING 상태 제안서 조회 (스케줄러용) */
     List<Proposal> findVotingProposalsWithExpiredDeadline(LocalDateTime now);
 
     /**

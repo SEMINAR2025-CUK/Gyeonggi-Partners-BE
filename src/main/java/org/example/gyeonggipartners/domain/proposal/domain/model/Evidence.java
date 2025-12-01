@@ -5,8 +5,16 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * 증거자료 Value Object
- * JSONB로 저장됨
+ * 증거자료(Evidence) Value Object
+ *
+ * <p><strong>[설계 의도: 정적 팩토리 메서드 & 불변 객체]</strong></p>
+ * <ul>
+ * <li><strong>생성 제어:</strong> {@code private} 생성자로 외부에서의 무분별한 객체 생성을 차단합니다.</li>
+ * <li><strong>무결성 보장:</strong> 오직 {@code of()} 메서드를 통해서만 생성 가능하며, 생성 시점에 유효성 검증을 강제합니다.</li>
+ * <li><strong>불변성:</strong> 생성 후에는 상태를 변경할 수 없습니다.</li>
+ * </ul>
+ *
+ * <p>참고: 데이터베이스에는 JSONB 타입으로 저장됩니다.</p>
  */
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -16,6 +24,9 @@ public class Evidence {
     private String title;
     private String url;
 
+    /** * [정적 팩토리 메서드]
+     * 외부에서 값을 받아 검증 후, 안전한 객체만을 생성하여 반환합니다.
+     */
     public static Evidence of(EvidenceType type, String title, String url) {
         validateTitle(title);
         validateUrl(url);

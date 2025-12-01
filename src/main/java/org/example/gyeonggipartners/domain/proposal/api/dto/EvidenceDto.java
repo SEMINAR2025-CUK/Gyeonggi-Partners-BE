@@ -27,7 +27,7 @@ public class EvidenceDto {
     @Size(max = 500, message = "URL은 500자를 넘을 수 없습니다.")
     private String url;
 
-    // Domain Entity -> DTO 변환
+
     public static EvidenceDto from(Evidence evidence) {
         return EvidenceDto.builder()
                 .type(evidence.getType())
@@ -36,7 +36,6 @@ public class EvidenceDto {
                 .build();
     }
 
-    // DTO -> Domain Entity 변환
     public Evidence toDomain() {
         return Evidence.of(this.type, this.title, this.url);
     }

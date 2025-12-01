@@ -11,5 +11,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ConsenterDto {
     private Long userId;
-    private String nickname; // 닉네임 필드 필수
+    private String nickname;
 }

@@ -36,8 +36,6 @@ public class ProposalConsentEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // --- Domain <-> Entity 변환 메서드 ---
-
     public static ProposalConsentEntity fromDomain(ProposalConsent domain) {
         return ProposalConsentEntity.builder()
                 .proposalId(domain.getProposalId())

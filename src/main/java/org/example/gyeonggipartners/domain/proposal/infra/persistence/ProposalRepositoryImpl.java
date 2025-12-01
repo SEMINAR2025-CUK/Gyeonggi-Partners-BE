@@ -21,6 +21,8 @@ public class ProposalRepositoryImpl implements ProposalRepository {
     @Override
     public Proposal save(Proposal proposal) {
         ProposalEntity entity = ProposalEntity.fromDomain(proposal);
+
+        // DB 조회 없이 프록시로 연관관계 설정 (FK만 필요하므로)
         DiscussionRoomEntity roomRef = entityManager.getReference(DiscussionRoomEntity.class, proposal.getRoomId());
         entity.setRoom(roomRef);
 
@@ -36,7 +38,6 @@ public class ProposalRepositoryImpl implements ProposalRepository {
 
     @Override
     public Optional<Proposal> findByIdWithLock(Long id) {
-        // JpaRepository에 정의한 비관적 락 메서드 호출
         return proposalJpaRepository.findByIdWithLock(id)
                 .map(ProposalEntity::toDomain);
     }
